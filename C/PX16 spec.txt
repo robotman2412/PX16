@@ -1,0 +1,107 @@
+
+Instruction format:
+15.. .... .... ...0
+YXXX BBBA AAOO OOOO
+
+O: Opcode
+A: A operand register
+B: B operand register
+X: Complex operand mode
+Y: Apply complex operand to B instead of A
+
+            .0  .1  .2  .3  .4  .5  .6  .7
+0.  MATH2   ADD SUB CMP AND OR  XOR
+1.  MATH2C  ADD SUB CMP AND OR  XOR
+2.  MATH1   INC DEC CMP             SHL SHR
+3.  MATH1C  INC DEC CMP             SHL SHR
+4.  MOV.C   ULT UGT SLT SGT EQ  CS  1   BRK
+5.  MOV.C   UGE ULE SGE SLE NE  CC  JSR RTI
+6.  LEA.C   ULT UGT SLT SGT EQ  CS  1
+7.  LEA.C   UGE ULE SGE SLE NE  CC  JSR
+
+Registers:
+R0, R1, R2, R3, ST, PF, PC, imm
+
+Addressing modes:
+    0: AR0  [A+R0]
+    1: AR1  [A+R1]
+    2: AR2  [A+R2]
+    3: AR3  [A+R3]
+    4: AST  [A+ST]
+    5: MEM  [A]
+    6: APC  [A+PC]
+    7: IMM   A
+
+JMP:
+    MOV PC, [PC+imm]
+
+JSR:
+    LEA.JSR PC, [PC+imm]
+
+RET:
+    MOV PC, [ST]
+
+RTI:
+    MOV.RTI PC, [ST]
+
+BRK.IRQ:
+    MOV.BRK PC, [0]
+
+BRK.NMI:
+    MOV.BRK PC, [1]
+
+States:
+    Boot: Load address 2 and set PC to it's value
+        Boot 0: Set PC to 1
+        Boot 1: Set PC to *2 by means of *(PC+1)
+    Load:
+        Load 0: Fetch and decode instruction
+        Load 1: Fetch imm0
+        Load 2: Fetch imm1
+    Push: Pre-decrement ST
+    Jsr:  Push PC to stack
+    Addr: Address calculation and memory access
+    Act:  Enact the instruction
+    Pop:  Post-increment ST
+
+State matrix:
+            INC WR  WM  RM  W       AIA AIB AXA AXB Cin     ADD OR  XOR SHL SHR     A   B   Dst Si0 Si1
+    Boot 0: -   1   -   -   -       -   -   1   1   1       1   -   -   -   -       6   -   6   -   -
+    Boot 1: -   1   -   1   -       -   -   -   1   1       1   -   -   -   -       6   -   6   -   -
+    
+    Load 0: 1   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   6   -   -   -
+    Load 1: 1   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   6   -   1   -
+    Load 2: 1   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   6   -   -   1
+    
+    Push:   -   1   -   -   -       -   1   -   1   1       1   -   -   -   -       4   -   4   -   -
+    Jsr:    -   -   1   -   -       -   -   1   -   -       -   1   -   -   -       -   4   -   -   -
+    Addr:   Depends on addressing mode
+    Act:    Depends on opcode
+    Pop:    -   1   -   -   -       -   1   -   -   1       1   -   -   -   -       4   -   4   -   -
+    
+Addressing matrix:
+    ARx     -   -   -   1   -       -   -   -   -   -       1   -   -   -   -       X   Ry  -   -   -
+    IMM:ACT Skip addr
+    IMM:MOV -   -   -   -   -       -   -   1   -   -       -   1   -   -   -       -   Ry  -   -   -
+    MEM     -   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   Ry  -   -   -
+    
+    LEA     -   -   -   0   1       -   -   -   -   -       -   -   -   -   -       -   -   A   -   -
+    MOV     -   -   -   -   1       -   -   -   -   -       -   -   -   -   -       -   -   A   -   -
+    ACT     -   -   -   -   -       -   -   -   -   -       -   -   -   -   -       -   -   -   ~Y  Y
+    
+Instruction matrix:
+    ADD     -   -   -   -   1       -   -   -   -   -       1   -   -   -   -       A   B   A   -   -
+    SUB     -   -   -   -   1       -   1   -   -   1       1   -   -   -   -       A   B   A   -   -
+    CMP     -   -   -   -   -       -   1   -   -   1       1   -   -   -   -       A   B   A   -   -
+    AND     -   -   -   -   1       1   1   -   -   -       -   1   -   -   -       A   B   A   -   -
+    OR      -   -   -   -   1       -   -   -   -   -       -   1   -   -   -       A   B   A   -   -
+    XOR     -   -   -   -   1       -   -   -   -   -       -   -   1   -   -       A   B   A   -   -
+    
+    INC     -   -   -   -   1       -   -   -   1   -       1   -   -   -   -       A   B   A   -   -
+    DEC     -   -   -   -   1       -   1   -   1   1       1   -   -   -   -       A   B   A   -   -
+    CMP     -   -   -   -   -       -   1   -   1   1       1   -   -   -   -       A   B   A   -   -
+    SHL     -   -   -   -   1       -   -   -   1   -       -   -   -   1   -       A   B   A   -   -
+    SHR     -   -   -   -   1       -   -   -   1   -       -   -   -   -   1       A   B   A   -   -
+    
+    MOV     Skip act
+    LEA     Skip act

@@ -1,0 +1,165 @@
+
+What i want:
+Add, Sub, Comp,
+And, Or, Xor,
+Shift L, Shift R, Rot L, Rot R
+I would like:
+Mul, Div
+
+Registers:
+R0->R4: General purpose registers
+ST: Stack pointer register
+PF: Processor flags register
+
+Hidden-ish registers:
+RIVT: Interrupt vector table: points to 8 addresses
+
+Operands:
+R0, R1, R2, R3, R4, ST, PF, IMM
+
+Processor flags:
+7... ...0
+USZ. ..IN
+U: Unsigned carry out.
+S: Signed carry out.
+Z: Zero.
+I: Interrupt enable.
+N: Non-maskable interrupt enable (1).
+
+(1): Not affected by writing to PF.
+
+Operand modes:
+Raw, Ram, Ptr, Ram+Offs
+
+Example operands:
+Raw			$ffff		Value
+Ram			[$ffff]		Word at address
+Ptr			($ffff)		Pointer
+Raw			[R0]		Register as pointer
+Ram+Offs	[$ffff+R0]	Register + $ffff as pointer
+Ram+Offs	[$0002+ST]	2 words past the top in the stack
+
+Opcode format:
+15.. .... .... ...0
+YXXQ BBBP AAAO OOOO		MOV, ALU operations
+SXXI CCCP AAAO OOOO		Certain merged instructions
+.XX. ...P AAAO OOOO		Single argument operations
+A: A operand.
+B: B operand.
+X: A operand mode.
+Y: Swap operand modes between A and B.
+C: Branch condition or instruction variation.
+I: Invert branch condition.
+S: Use results from signed comparison.
+P: A operand is addressed position-independant. (PC added to immediate address)
+Q: B operand is addressed position-independant. (PC added to immediate address)
+
+Instructions:
+C S I O   HEX	Name	Args	Description
+      00  0000	ADD		A, B	Adds B to A.
+      01  0001	SUB		A, B	Subtracts B from A.
+      02  0002	ADDC	A, B	Adds B to A with carry.
+      03  0003	SUBC	A, B	Subtracts B from A with borrow.
+2     04  0004	INC		A		Increments A.
+3     04  0204	DEC		A		Decrements A.
+6     04  0804	INCC	A		Increments A with carry.
+7     04  0A04	DECC	A		Decrements A with borrow.
+0     05  0005	SHL		A		Shifts  left  A by one.
+1     05  0205	SHR		A		Shifts  right A by one.
+2     05  0405	ROL		A		Rotates left  A by one.
+3     05  0605	ROR		A		Rotates right A by one.
+4     05  0805	SHLC	A		Shifts  left  A by one with carry.
+5     05  0A05	SHRC	A		Shifts  right A by one with carry.
+      06  0006	AND		A, B	Logical ANDs  A with B.
+      07  0007	OR		A, B	Logical ORs   A with B.
+      08  0008	CMP		A, B	Compares A to B.
+      09  0009	XOR		A, B	Logical XORs  A with B.
+      0A  000A	CMPC	A, B	Compares A to B with borrow.
+      ..  ....  ...
+1     19  0019  SEI		-		Enable interrupts.
+0     19  0219  CLI		-		Disable interrupts.
+      1A  001A  -		-		Apply operand mode X to B in next instruction.
+0 0 0 1B  001B	BGT		A		Branches to A if A>B is true (unsigned).
+1 0 0 1B  021B	BLT		A		Branches to A if A<B is true (unsigned).
+2 0 0 1B  041B	BCS		A		Branches to A if the carry flag is set.
+3 0 0 1B  061B	BEQ		A		Branches to A if A==B is true.
+0 0 1 1B  101B	BLE		A		Branches to A if A<=B is true (unsigned).
+1 0 1 1B  121B	BGE		A		Branches to A if A>=B is true (unsigned).
+2 0 1 1B  141B	BCC		A		Branches to A if the carry flag is clear.
+3 0 1 1B  161B	BNE		A		Branches to A if A!=B is true.
+0 1 0 1B  801B	BPL		A		Branches to A if A>B is true (signed).
+1 1 0 1B  821B	BMI		A		Branches to A if A<B is true (signed).
+0 1 1 1B  901B	BME		A		Branches to A if A<=B is true (signed).
+1 1 1 1B  921B	BPE		A		Branches to A if A>=B is true (signed).
+4 0 0 1B  081B	JMP		A		Jumps to A.
+5 0 0 1B  0A1B	JSR		A		Jumps to subroutine A.
+6 0 0 1B  0C1B	RET				Returns from subroutine.
+7 0 0 1B  0E1B	RTI				Returns from interrupt.
+      1C  001C	MOV		A, B	Copies B to A.
+      1D  001D	LEA		A, B	Copies the address of B to A.
+0     1E  001E	PSH		A		Pushes A.
+1     1E  0C1E	POP		A		Pops A.
+      1F  001F	HLT				Halts until an interrupt occurs.
+
+Example assembly: get string length
+
+strlen:	; Assumes R0 contains the address of some odd null-terminated string.
+		MOV R1, R0					; Copy the address to R1.
+.loop:	CMP [R1], 0					; Compare the address there to 0.
+		BEQ .exit					; Exit if it is 0.
+		INC R1						; Next word.
+		JMP .loop					; Continue the loop.
+.exit:	SUB R1, R0					; Subtract origin from address.
+		MOV R0, R1					; Copy the address back to R0.
+		RET							; Return.
+
+Example assembly: advanced addressing
+
+		LEA R0, [$CF04]				; Maybe one of your variables.
+		LEA R1, [$89EC]				; And another one.
+		MOV [$6754+R0], [$2510+R1]	; Overly complicated copy.
+
+Example assembly: multiply R1 and R2
+
+mul:	; R0 = R1 * R2
+		XOR R0, R0					; 0009		Set R0 to 0 by XORing with itself.
+		JMP .ok						; 08fb 
+.loop:	SHL R2						; Shift left the other input.
+.ok:	OR R1, R1					; Exit if R1 is 0.
+		BEQ .exit
+		SHR R1						; Shift right some inputs.
+		BCC .loop					; Do not add other output if shifted bit was 0.
+		ADD R0, R2					; Add the SHIT.
+		JMP .loop
+.exit:	RET
+
+Example assembly: memcpy
+
+memcpy:	; dst: R1, src: R2, len: R3
+		OR R3, R3					; 0667
+		BEQ .exit					; 06FB FFFF
+		ADD R3, R2					; 0620
+.loop:	MOV [R1], [R2]				; 201A 025C
+		INC R2						; 0044
+		INC R1						; 0024
+		CMP R2, R3					; 0648
+		BNE .loop					; 16FB FFFF
+.exit:	RET							; 0C1B
+
+Bullshit:
+
+		MOV R1, $FFFF				; 0E3C FFFF
+		MOV [$CCCC], 21				; 2EFC CCCC 0015
+		MOV R1, [$0006+R0]			; E03C 0006
+
+Testing: Subroutines
+
+entry:	; 0000:
+		MOV ST, $FFFF				; 0ECC FFFF
+		JSR sub						; 0AFB 0010
+		HLT							; 001F
+		
+sub:	; 0010:
+		PSH $FECA					; 00FE FECA
+		POP R1						; 0C3E
+		RET							; 0C1B

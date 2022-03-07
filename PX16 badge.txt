@@ -1,0 +1,94 @@
+
+Tha PX16 bodge:
+	1x	PX16 (16-bit) CPU, 16Kw ROM-ish, 64 Kw RAM
+	1x	Hardware timer with 1 limit
+	10x	Buttons
+
+Power modes:
+	On:
+		Powered on, CPU running continuously.
+		Default state.
+	Idle:
+		Powered on, CPU resumes on interrupt.
+		Entered by running the HLT instruction.
+		All states are preserved on exit.
+	Light sleep:
+		Powered on, power CPU restored on button press.
+		Entered by updating power mode register.
+		CPU will reset on exit, but RAM will not.
+	Deep sleep:
+		Powered off, power restored on button press.
+		Entered by updating power mode register.
+		CPU and RAM will reset on exit.
+	Off:
+		Powered off, battery disconnected.
+		Entered by turning off the power switch.
+
+Examples:
+	On:
+		Calculations, games and fun things.
+	Idle:
+		Little or no usage of CPU time.
+	Light sleep:
+		Waiting for inputs, saving power when nothing is happening.
+	Deep sleep:
+		Not in immediate use, saving power.
+	Off:
+		Not in use for an extended period of time.
+
+MMIO:
+	0xffff - Power measurement	(8-bit)
+	0xfffe - Power mode			(8-bit)
+	0xfffd - Button input
+	0xfffc - Timer 0 mode		(8-bit)
+	0xfffb - Timer 0 low
+	0xfffa - Timer 0 high
+	0xfff9 - Limit 0 low
+	0xfff8 - Limit 0 high
+	0xfff7 - MPU 3 end
+	0xfff6 - MPU 3 start
+	0xfff5 - MPU 2 end
+	0xfff4 - MPU 2 start
+	0xfff3 - MPU 1 end
+	0xfff2 - MPU 1 start
+	0xfff1 - MPU 0 end
+	0xfff0 - MPU 0 start
+	0xffef - MPU mode
+
+Power measurement register:
+	Used to read the battery value.
+	Range will depend on measurement circuitry.
+
+Power mode register: .... .... DL.. .TBS
+	D: Deep sleep:   Turns off power to CPU and RAM when 1.
+	L: Light sleep:  Turns off power to CPU when 1.
+	T: Timer state:  Timers may wake from sleep.
+	B: Button state: Buttons may wake from sleep.
+	S: Screen state: Enables the screen when 1.
+
+Button input:
+	    .---.                      .-.    
+	    | 1 |               .-.   ( 5 )   
+	.---'   '---.          ( 4 )   '-'    
+	| 0       3 |           '-'       .-. 
+	'---.   .---'              .-.   ( 7 )
+	    | 2 |                 ( 6 )   '-' 
+	    '---'                  '-'        
+	                                      
+	          ______      ______          
+	          \__8__\     \__9__\         
+
+Timer mode register: .... .... RW.. ..IE
+	R: Read value:   Read current value to intermediary registers.
+	R: Write value:  Write intermediary registers current value.
+	I: Interrupts:   Send an interrupt when the limit is reached.
+	E: Enable:       Enable the timer.
+
+MPU start / end registers:
+	Used to set the part of memory affected by this zone.
+
+MPU mode register:   ERWX.RWX.RWX
+	E: Enable memory protection unit.
+	R: Allow reading in zone.
+	W: Allow writing in zone.
+	X: Allow code execution in zone.
