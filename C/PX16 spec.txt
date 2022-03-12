@@ -19,6 +19,8 @@ Y: Apply complex operand to B instead of A
 6.  LEA.C   ULT UGT SLT SGT EQ  CS  1
 7.  LEA.C   UGE ULE SGE SLE NE  CC  JSR
 
+Note: Because CMP is much like SUB, CMP is still valid for MATH1 and the B is then 1.
+
 Registers:
 R0, R1, R2, R3, ST, PF, PC, imm
 

@@ -1,4 +1,13 @@
 
+	; SUB     [R0], R1
+	
+	; Y X B A  O
+	; 0 5 1 0 01
+	
+	; YXXX BBBA AAOO OOOO
+	; 0101 0010 0000 0001
+	; 0x5201
+
 	; Integer minimum.
 	; args:
 	;   R0, R1: integers
