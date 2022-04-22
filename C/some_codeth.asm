@@ -1,5 +1,5 @@
 
-	; SUB     [R0], R1
+	; SUB [R0], R1
 	
 	; Y X B A  O
 	; 0 5 1 0 01
@@ -7,6 +7,15 @@
 	; YXXX BBBA AAOO OOOO
 	; 0101 0010 0000 0001
 	; 0x5201
+
+	; MOV ST, 0xffff
+	
+	; Y X B A  O
+	; 0 7 7 4 46
+	
+	; YXXX BBBA AAOO OOOO
+	; 0111 1111 0010 0110
+	; 0x7f26
 
 	; Integer minimum.
 	; args:

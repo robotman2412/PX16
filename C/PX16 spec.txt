@@ -89,7 +89,7 @@ Addressing matrix:
     
     LEA     -   -   -   0   1       -   -   -   -   -       -   -   -   -   -       -   -   A   -   -
     MOV     -   -   -   -   1       -   -   -   -   -       -   -   -   -   -       -   -   A   -   -
-    ACT     -   -   -   -   -       -   -   -   -   -       -   -   -   -   -       -   -   -   ~Y  Y
+    ACT     -   -   -   -   -       -   -   -   -   -       -   -   -   -   -       -   -   -   !Y  Y
     
 Instruction matrix:
     ADD     -   -   -   -   1       -   -   -   -   -       1   -   -   -   -       A   B   A   -   -
@@ -99,9 +99,9 @@ Instruction matrix:
     OR      -   -   -   -   1       -   -   -   -   -       -   1   -   -   -       A   B   A   -   -
     XOR     -   -   -   -   1       -   -   -   -   -       -   -   1   -   -       A   B   A   -   -
     
-    INC     -   -   -   -   1       -   -   -   1   -       1   -   -   -   -       A   B   A   -   -
-    DEC     -   -   -   -   1       -   1   -   1   1       1   -   -   -   -       A   B   A   -   -
-    CMP     -   -   -   -   -       -   1   -   1   1       1   -   -   -   -       A   B   A   -   -
+    INC     -   -   -   -   1       -   -   -   1   1       1   -   -   -   -       A   B   A   -   -
+    DEC     -   -   -   -   1       -   1   -   1   -       1   -   -   -   -       A   B   A   -   -
+    CMP     -   -   -   -   -       -   1   -   1   -       1   -   -   -   -       A   B   A   -   -
     SHL     -   -   -   -   1       -   -   -   1   -       -   -   -   1   -       A   B   A   -   -
     SHR     -   -   -   -   1       -   -   -   1   -       -   -   -   -   1       A   B   A   -   -
     
