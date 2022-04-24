@@ -52,6 +52,15 @@ BRK.IRQ:
 BRK.NMI:
     MOV.BRK PC, [1]
 
+Flag register (PF) layout:
+15.. .... .... ...0
+SUZ. .... .... ..IN
+S: Signed carry out
+U: Unsigned carry out
+Z: Zero
+I: IRQ enable
+N: NMI enable
+
 States:
     Boot: Load address 2 and set PC to it's value
         Boot 0: Set PC to 1
@@ -68,30 +77,31 @@ States:
 
 State matrix:
             INC WR  WM  RM  W       AIA AIB AXA AXB Cin     ADD OR  XOR SHL SHR     A   B   Dst Si0 Si1
-    Boot 0: -   1   -   -   -       -   -   1   1   1       1   -   -   -   -       6   -   6   -   -
+    Boot 0: -   1   -   -   -       -   -   -   1   1       1   -   -   -   -       6   -   6   -   -
     Boot 1: -   1   -   1   -       -   -   -   1   1       1   -   -   -   -       6   -   6   -   -
     
     Load 0: 1   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   6   -   -   -
     Load 1: 1   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   6   -   1   -
     Load 2: 1   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   6   -   -   1
     
-    Push:   -   1   -   -   -       -   1   -   1   1       1   -   -   -   -       4   -   4   -   -
+    Push:   -   1   -   -   -       -   1   -   1   -       1   -   -   -   -       4   -   4   -   -
     Jsr:    -   -   1   -   -       -   -   1   -   -       -   1   -   -   -       -   4   -   -   -
     Addr:   Depends on addressing mode
+    Mov:    Depends on opcode
     Act:    Depends on opcode
-    Pop:    -   1   -   -   -       -   1   -   -   1       1   -   -   -   -       4   -   4   -   -
+    Pop:    -   1   -   -   -       -   -   -   1   1       1   -   -   -   -       4   -   4   -   -
     
 Addressing matrix:
     ARx     -   -   -   1   -       -   -   -   -   -       1   -   -   -   -       X   Ry  -   -   -
-    IMM:ACT Skip addr
-    IMM:MOV -   -   -   -   -       -   -   1   -   -       -   1   -   -   -       -   Ry  -   -   -
+    IMM:    Skip addr
+    MOV     -   -   -   -   -       -   -   1   -   -       -   1   -   -   -       -   B   -   -   -
     MEM     -   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   Ry  -   -   -
     
     LEA     -   -   -   0   1       -   -   -   -   -       -   -   -   -   -       -   -   A   -   -
     MOV     -   -   -   -   1       -   -   -   -   -       -   -   -   -   -       -   -   A   -   -
     ACT     -   -   -   -   -       -   -   -   -   -       -   -   -   -   -       -   -   -   !Y  Y
     
-Instruction matrix:
+Calculation matrix:
     ADD     -   -   -   -   1       -   -   -   -   -       1   -   -   -   -       A   B   A   -   -
     SUB     -   -   -   -   1       -   1   -   -   1       1   -   -   -   -       A   B   A   -   -
     CMP     -   -   -   -   -       -   1   -   -   1       1   -   -   -   -       A   B   A   -   -

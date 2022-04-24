@@ -8,14 +8,76 @@
 	; 0101 0010 0000 0001
 	; 0x5201
 
-	; MOV ST, 0xffff
+
+	; MOV PC, 0xffff
 	
 	; Y X B A  O
 	; 0 7 7 4 46
 	
 	; YXXX BBBA AAOO OOOO
-	; 0111 1111 0010 0110
-	; 0x7f26
+	; 0111 1111 1010 0110
+	; 0x7fa6
+
+
+	; MOV [0x0010], 0xfeca
+	
+	; Y X B A  O
+	; 1 5 7 7 46
+	
+	; YXXX BBBA AAOO OOOO
+	; 0101 1111 1110 0110
+	; 0x5fe6
+
+
+	; LEA R3, [PC+5]
+	
+	; Y X B A  O
+	; 1 6 7 3 66
+	
+	; YXXX BBBA AAOO OOOO
+	; 1110 1110 1111 0110
+	; 0xeef6
+
+
+	; MOV.CS PC, 0xccfd
+	
+	; Y X B A  O
+	; 0 7 7 6 45
+	
+	; YXXX BBBA AAOO OOOO
+	; 0111 1111 1010 0101
+	; 0x7fa5
+
+
+	; MOV [ST], R2
+	
+	; Y X B A  O
+	; 0 5 2 4 46
+	
+	; YXXX BBBA AAOO OOOO
+	; 0101 0101 0010 0110
+	; 0x5526
+
+
+	; MOV PC, [ST]
+	
+	; Y X B A  O
+	; 1 5 4 6 46
+	
+	; YXXX BBBA AAOO OOOO
+	; 1101 1001 1010 0110
+	; 0xd9a6
+
+
+	; LEA PC, [PC+0]
+	
+	; Y X B A  O
+	; 1 6 7 6 66
+	
+	; YXXX BBBA AAOO OOOO
+	; 1110 1111 1011 0110
+	; 0xefb6
+
 
 	; Integer minimum.
 	; args:
