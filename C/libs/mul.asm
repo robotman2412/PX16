@@ -3,9 +3,8 @@
 
 	// Multiplies R0 by R1, result in R0.
 	// Signed multiply.
-__px16_mul_hhi:
-__px16_mul_hi:
 __px16_mul_i:
+	MOV [ST], R2
 	// Determines sign later.
 	XOR R2, R2
 	// Check whether R0 is negative.
@@ -26,7 +25,7 @@ __px16_mul_i:
 .skipinvb:
 	// Preserve R2.
 	MOV [ST], R2
-	// Call __px16_mul_u.
+	// Call the unsigned multiply.
 	MOV.JSR PC, __px16_mul_u
 	// Restore R2.
 	MOV R2, [ST]
@@ -37,15 +36,132 @@ __px16_mul_i:
 	XOR R0, 0xffff
 	INC R0
 .exit:
+	MOV R2, [ST]
 	MOV PC, [ST]
-	
+
+
+
+	// Multiplies R0 R1 by R2 R3, result in R0 R1.
+	// Signed multiply.
+__px16_mul_li:
+	// Determines sign later.
+	MOV [ST], 0
+	// Check whether A is negative.
+	// Checking R0 is unnecessary.
+	CMP R1, 0
+	MOV.SGE PC, .skipinva
+	// Make A positive.
+	XOR R0, 0xffff
+	XOR R1, 0xffff
+	INC R0
+	INCC R1
+	XOR [ST+1], 1
+.skipinva:
+	// Check whether B is negative.
+	CMP R2, 0
+	MOV.SGE PC, .skipinvb
+	// Make B positive.
+	XOR R2, 0xffff
+	XOR R3, 0xffff
+	INC R2
+	INCC R3
+	XOR [ST+1], 1
+.skipinvb:
+	// Call the unsigned multiply.
+	MOV.JSR PC, __px16_mul_lu
+	// Check the sign bit.
+	MOV R2, [ST]
+	CMP2 R2
+	MOV.ULT PC, .exit
+	// Fix the sign.
+	XOR R0, 0xffff
+	XOR R1, 0xffff
+	INC R0
+	INCC R1
+.exit:
+	MOV PC, [ST]
+
+
+
+	// Multiplies [ST+5]...[ST+8] by [ST+1]...[ST+4], result in R0...R3.
+	// Signed multiply.
+__px16_mul_lli:
+	// Determines sign later.
+	XOR R0, R0
+	// Check whether A is negative.
+	CMP [ST+8], 0
+	MOV.SGE PC, .skipinva
+	// Make A positive.
+	XOR [ST+5], 0xffff
+	XOR [ST+6], 0xffff
+	XOR [ST+7], 0xffff
+	XOR [ST+8], 0xffff
+	INC [ST+5]
+	INCC [ST+6]
+	INCC [ST+7]
+	INCC [ST+8]
+	XOR R0, 1
+.skipinva:
+	// Check whether B is negative.
+	CMP [ST+4], 0
+	MOV.SGE PC, .skipinva
+	// Make B positive.
+	XOR [ST+1], 0xffff
+	XOR [ST+2], 0xffff
+	XOR [ST+3], 0xffff
+	XOR [ST+4], 0xffff
+	INC [ST+1]
+	INCC [ST+2]
+	INCC [ST+3]
+	INCC [ST+4]
+	XOR R0, 1
+.skipinvb:
+	MOV [ST], R0
+	// It turns out we need to allocate more stack space...
+	// So there's this memory copy.
+	MOV R0, [ST+9]
+	MOV [ST], R0
+	MOV R0, [ST+9]
+	MOV [ST], R0
+	MOV R0, [ST+9]
+	MOV [ST], R0
+	MOV R0, [ST+9]
+	MOV [ST], R0
+	MOV R0, [ST+9]
+	MOV [ST], R0
+	MOV R0, [ST+9]
+	MOV [ST], R0
+	MOV R0, [ST+9]
+	MOV [ST], R0
+	MOV R0, [ST+9]
+	MOV [ST], R0
+	// Call the unsigned multiply.
+	MOV.JSR PC, __px16_mul_llu
+	// Discard extra stack things.
+	ADD ST, 8
+	// Check the sign bit.
+	CMP1 [ST+1]
+	MOV.ULT PC, .exit
+	// Fix the sign.
+	XOR R0, 0xffff
+	XOR R1, 0xffff
+	XOR R2, 0xffff
+	XOR R3, 0xffff
+	INC R0
+	INCC R1
+	INCC R2
+	INCC R3
+.exit:
+	// Remove the sign bit from the stack.
+	INC ST
+	MOV PC, [ST]
+
+
 
 // ==== Unsigned multiplication ==== //
 
 	// Multiplies R0 by R1, result in R0.
 	// Unsigned multiply.
-__px16_mul_hhu:
-__px16_mul_hu:
 __px16_mul_u:
 	XOR R2, R2
 .loop:
