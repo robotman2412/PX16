@@ -2,6 +2,7 @@
 #include "main.h"
 #include "term.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char **argv) {
 	// Add the exit handler.

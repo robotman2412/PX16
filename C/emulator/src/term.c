@@ -11,7 +11,7 @@ void term_setpos(pos to) {
 
 // Sets the terminal's cursor position.
 void term_setxy(uint32_t x, uint32_t y) {
-	printf("\033[%d;%dH", x, y);
+	printf("\033[%d;%dH", y, x);
 }
 
 // Gets the terminal's cursor position.
@@ -19,7 +19,7 @@ pos term_getpos() {
 	// Query the position.
 	printf("\033[6n");
 	pos res;
-	scanf("\033[%d;%dR", &res.x, &res.y);
+	scanf("\033[%d;%dR", &res.y, &res.x);
 	return res;
 }
 
