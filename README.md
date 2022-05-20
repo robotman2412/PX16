@@ -5,11 +5,15 @@ And a few math instructions.
 
 
 Has 4 general registers: `R0`, `R1`, `R2`, `R3`
-
 And 3 special registers: `ST` (stack register), `PF` (flags register), `PC` (program counter)
 
+64K x 16bit memory.
 
-Note: RISC is not equal to RISC-V.
+
+### Note:
+RISC is not equal to RISC-V.
+
+PX16 cannot address bytes.
 
 # TODO
 Crap i do be workin on:
