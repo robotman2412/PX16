@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include "px16.h"
 
 struct s_pos;
 
@@ -22,5 +23,10 @@ void term_setxy(uint32_t x, uint32_t y);
 pos term_getpos();
 // Gets the terminal's size.
 pos term_getsize();
+
+// Draws the matrix display.
+void draw_display(core *cpu, memmap *mem);
+// Draws the registers.
+void draw_regs(core *cpu);
 
 #endif //TERM_H

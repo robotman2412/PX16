@@ -76,10 +76,10 @@ bool decide_cond(core *cpu, word opcode) {
 word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 	// Determine some parameters.
 	bool  math1 = opcode >= OP_INC;
-	lword cin   = (opcode & OFFS_CC) ? (cpu->PF & FLAG_UCOUT)
-				: (opcode == OP_ADD || opcode == OP_INC) ^ math1;
-	if (math1) b = 0;
 	opcode &= ~OFFS_CC & ~OFFS_MATH1;
+	lword cin   = (opcode & OFFS_CC) ? !!(cpu->PF & FLAG_UCOUT)
+				: (opcode != OP_ADD) ^ math1;
+	if (math1) b = 0;
 	lword res;
 	bool scout = false;
 	// Calculate some CRAP.
@@ -120,6 +120,24 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 	return res;
 }
 
+// Resets the core.
+void core_reset(core *cpu) {
+	cpu->state = (core_cu) {
+		.boot_0 = 1,
+		.boot_1 = 0,
+		.load_0 = 0,
+		.load_1 = 0,
+		.load_2 = 0,
+		.push   = 0,
+		.jsr    = 0,
+		.addr   = 0,
+		.act    = 0,
+		.mov    = 0,
+		.pop    = 0,
+	};
+	cpu->PC = 0;
+}
+
 // Simulates things that happen during the low time.
 // Does not change register or memory states.
 void core_pretick(core *cpu, memmap *mem) {}
@@ -152,20 +170,22 @@ lword fast_tick(core *cpu, memmap *mem) {
 	if (cpu->state.boot_0) {
 		cpu->PC = mem->mem_read(cpu, 2, false, mem->mem_ctx);
 		took = 2;
+		cpu->state.boot_0 = 0;
+		cpu->state.load_0 = 1;
 	} else if (cpu->state.boot_1) {
 		core_tick(cpu, mem);
 		took ++;
 	}
 	// If we're midway through executing, finish that and return.
-	if (!cpu->state.load_0) {
-		while (!cpu->state.load_0) {
-			core_tick(cpu, mem);
-			took ++;
-		}
-		return took;
-	}
+	// if (!cpu->state.load_0) {
+	// 	while (!cpu->state.load_0) {
+	// 		core_tick(cpu, mem);
+	// 		took ++;
+	// 	}
+	// 	return took;
+	// }
 	
-	mem->pre_tick(cpu, mem->tick_ctx);
+	if (mem->pre_tick) mem->pre_tick(cpu, mem->tick_ctx);
 	// Now we get to the fun stuff.
 	// Unpack the instruction to run.
 	instr run = unpack_insn(mem->mem_read(cpu, cpu->PC++, false, mem->mem_ctx));
@@ -181,13 +201,14 @@ lword fast_tick(core *cpu, memmap *mem) {
 		cpu->imm1 = mem->mem_read(cpu, cpu->PC++, false, mem->mem_ctx);
 		took ++;
 	}
+	bool is_jsr = run.o == (OFFS_MOV | COND_JSR) || run.o == (OFFS_LEA | COND_JSR);
 	// Check for push stage.
-	if (!run.y && run.x == ADDR_MEM && run.a == REG_ST) {
+	if (is_jsr || (!run.y && run.x == ADDR_MEM && run.a == REG_ST)) {
 		cpu->ST --;
 		took ++;
 	}
 	// Check for jsr stage.
-	if (0) {
+	if (is_jsr) {
 		mem->mem_write(cpu, cpu->ST, cpu->PC, mem->mem_ctx);
 		took ++;
 	}
@@ -195,7 +216,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	if (run.x != ADDR_IMM) {
 		reg regno = run.y ? run.b : run.a;
 		word regval = regno != REG_IMM ? cpu->regfile[regno]
-					: run.y ? cpu->imm1 : cpu->imm0;
+					: (run.y ? cpu->imm1 : cpu->imm0);
 		if (run.x == ADDR_MEM) {
 			cpu->AR = regval;
 		} else {
@@ -248,7 +269,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 		took ++;
 	}
 	end:
-	mem->post_tick(cpu, mem->tick_ctx);
+	if (mem->post_tick) mem->post_tick(cpu, mem->tick_ctx);
 	return took;
 }
 

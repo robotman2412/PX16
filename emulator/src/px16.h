@@ -207,6 +207,9 @@ struct s_core {
 
 /* ======== Functions ======== */
 
+// Resets the core.
+void core_reset(core *cpu);
+
 // Simulates one full clock cycle of the core.
 void core_tick(core *cpu, memmap *mem);
 
