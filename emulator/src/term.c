@@ -70,18 +70,20 @@ void draw_display(core *cpu, memmap *mem) {
 	pos old = term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 14) / 2, 1);
-	fputs("\033[2KMatrix Display", stdout);
+	fputs(ANSI_CLRLN "Matrix Display", stdout);
 	term_setxy(1, 2);
 	
 	// And fart out everything.
 	for (int y = 0; y < 16; y++) {
+		term_setxy((size.x - 64) / 2, y + 2);
+		fputs("\033[0m" ANSI_CLRLN, stdout);
 		for (int x = 0; x < 32; x++) {
 			bool val = (screen[x] >> y) & 1;
 			fputs(val ? on_col : off_col, stdout);
 			fputs("  ", stdout);
 		}
-		fputc('\n', stdout);
 	}
+	fputc('\n', stdout);
 	
 	// Reset thel TTY.
 	fputs("\033[0m", stdout);

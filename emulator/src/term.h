@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include "px16.h"
 
+#define ANSI_CLRLN "\033[2K"
+
 struct s_pos;
 
 typedef struct s_pos pos;

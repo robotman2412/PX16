@@ -4,6 +4,12 @@
 #include "term.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
+static double sim_hertz;
+static uint64_t sim_us_delay;
+static uint64_t sim_ticks;
 
 int main(int argc, char **argv) {
 	// Add the exit handler.
@@ -13,7 +19,7 @@ int main(int argc, char **argv) {
 	}
 	
 	// Set TTY mode to disable line buffering and echoing.
-	system("stty cbreak -echo -isig");
+	system("stty cbreak -echo isig");
 	
 	core cpu;
 	memmap mem;
@@ -31,14 +37,52 @@ int main(int argc, char **argv) {
 		0x002A, 0xD9A6,
 	};
 	badge.rom = rom;
-	badge.rom_len = 50;
+	badge.rom_len = sizeof(rom) / sizeof(word);
 	
-	core_reset(&cpu);
-	fast_ticks(&cpu, &mem, 10000);
-	draw_display(&cpu, &mem);
-	draw_regs(&cpu);
+	sim_sethertz(10);
+	
+	pos reg_pos = term_getpos();
+	while (1) {
+		core_reset(&cpu);
+		fast_ticks(&cpu, &mem, sim_ticks);
+		draw_display(&cpu, &mem);
+		term_setpos(reg_pos);
+		draw_regs(&cpu);
+		usleep(sim_us_delay);
+	}
 	
 	return 0;
+}
+
+// Return unix time in millisecods.
+uint64_t millis() {
+	struct timespec now;
+	timespec_get(&now, TIME_UTC);
+	return now.tv_sec * 1000 + now.tv_nsec / 1000000;
+}
+
+// Return unix time in microseconds.
+uint64_t micros() {
+	struct timespec now;
+	timespec_get(&now, TIME_UTC);
+	return now.tv_sec * 1000000 + now.tv_nsec / 1000;
+}
+
+// Sets the frequency in hertz to simulate at.
+void sim_sethertz(double hertz) {
+	sim_hertz = hertz;
+	if (hertz < 100) {
+		sim_ticks = 1;
+		sim_us_delay = 1000000.0 / hertz;
+	} else {
+		sim_us_delay = 10000;
+		sim_ticks    = hertz / 100.0;
+	}
+}
+
+// Gets the frequency in hertz to simulate at.
+double sim_gethertz() {
+	return sim_hertz;
 }
 
 // Handler for program exit.
