@@ -1,12 +1,17 @@
 
 CC=gcc
 CFLAGS=-Isrc
-HEADERS=src/main.h src/term.h src/px16.h src/memmap.h
+HEADERS=$(shell find ./src -type f -name "*.h")
+SOURCES=$(shell find ./src -type f -name "*.c")
+OBJECTS=$(shell find ./src -type f -name "*.c" -printf './build/%p.o\n' | sed -e 's|/src||')
 
-./build/%.o: ./src/% $(HEADERS)
+builddir: $(shell find src -type d | sed -e 's/src/build/')
+	mkdir -p $^
+
+./build/%.o: builddir ./src/% $(HEADERS)
 	$(CC) -ggdb -c -o $@ $< $(CFLAGS)
 
-all: ./build/px16.c.o ./build/main.c.o ./build/term.c.o ./build/memmap.c.o
+all: $(OBJECTS)
 	$(CC) -o pxe $^
 
 run:
@@ -16,4 +21,4 @@ run:
 	$(MAKE) --no-print-directory all && ./pxe
 
 clean:
-	rm -rf ./build/*
+	rm -rf $(find build -type f)
