@@ -76,9 +76,10 @@ bool decide_cond(core *cpu, word opcode) {
 word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 	// Determine some parameters.
 	bool  math1 = opcode >= OP_INC;
-	opcode &= ~OFFS_CC & ~OFFS_MATH1;
+	opcode &= ~OFFS_MATH1;
 	lword cin   = (opcode & OFFS_CC) ? !!(cpu->PF & FLAG_UCOUT)
 				: (opcode != OP_ADD) ^ math1;
+	opcode &= ~OFFS_CC;
 	if (math1) b = 0;
 	lword res;
 	bool scout = false;
@@ -278,9 +279,9 @@ lword fast_tick(core *cpu, memmap *mem) {
 // Returns the real number of simulated cycles.
 lword fast_ticks(core *cpu, memmap *mem, lword cycles) {
 	lword real = 0;
-	while (real < cycles) {
+	do {
 		real += fast_tick(cpu, mem);
-	}
+	} while (real < cycles);
 	return real;
 }
 

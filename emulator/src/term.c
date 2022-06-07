@@ -1,5 +1,6 @@
 
 #include "term.h"
+#include "main.h"
 #include "px16.h"
 #include <stdio.h>
 #include <fcntl.h>
@@ -21,9 +22,20 @@ void term_setxy(uint32_t x, uint32_t y) {
 // Gets the terminal's cursor position.
 pos term_getpos() {
 	// Query the position.
+	int flags = fcntl(0, F_GETFL, 0);
+	fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
 	printf("\033[6n");
 	pos res;
-	scanf("\033[%d;%dR", &res.y, &res.x);
+	int c;
+	while (1) {
+		c = fgetc(stdin);
+		if (c == '\033') break;
+		else {
+			handle_term_input(c);
+		}
+	}
+	scanf("[%d;%dR", &res.y, &res.x);
+	fcntl(0, F_SETFL, flags);
 	return res;
 }
 
@@ -88,9 +100,9 @@ void draw_display(core *cpu, memmap *mem) {
 	// Reset thel TTY.
 	fputs("\033[0m", stdout);
 	pos cur = term_getpos();
-	if (old.y < cur.y) {
-		old.y = cur.y;
-	}
+	// if (old.y < cur.y) {
+	// 	old.y = cur.y;
+	// }
 	term_setpos(old);
 }
 

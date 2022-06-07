@@ -6,10 +6,13 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 static double sim_hertz;
 static uint64_t sim_us_delay;
 static uint64_t sim_ticks;
+
+static bool exuent = false;
 
 int main(int argc, char **argv) {
 	// Add the exit handler.
@@ -20,6 +23,8 @@ int main(int argc, char **argv) {
 	
 	// Set TTY mode to disable line buffering and echoing.
 	system("stty cbreak -echo isig");
+	int flags = fcntl(0, F_GETFL, 0);
+	fcntl(0, F_SETFL, flags | O_NONBLOCK);
 	
 	core cpu;
 	memmap mem;
@@ -28,6 +33,8 @@ int main(int argc, char **argv) {
 	
 	// PUT TEMP.
 	const word rom[] = {
+		// 0x0000, 0x0000, 0x0003, 0x7E26, 0x0005, 0x7E00, 0xffff, 0x7FA6, 0x0007,
+		
 		0xFFFF, 0xFFFF, 0x0023, 0x0000, 0x3FFC, 0x0004, 0x0084, 0x0048,
 		0x0030, 0x0000, 0x2080, 0x3FA0, 0x2000, 0x0000, 0x3180, 0x0A00,
 		0x0400, 0x0A00, 0x3180, 0x0000, 0x2080, 0x3FA0, 0x2000, 0x0000,
@@ -38,18 +45,28 @@ int main(int argc, char **argv) {
 	};
 	badge.rom = rom;
 	badge.rom_len = sizeof(rom) / sizeof(word);
-	
-	sim_sethertz(10);
+	sim_sethertz(1000);
+	core_reset(&cpu);
 	
 	pos reg_pos = term_getpos();
-	while (1) {
-		core_reset(&cpu);
-		fast_ticks(&cpu, &mem, sim_ticks);
+	while (!exuent) {
+		usleep(sim_us_delay);
+		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
 		draw_display(&cpu, &mem);
 		term_setpos(reg_pos);
 		draw_regs(&cpu);
-		usleep(sim_us_delay);
+		fflush(stdout);
+		
+		int c;
+		fputc('q', stdin);
+		while ((c = fgetc(stdin)) != EOF) {
+			handle_term_input(c);
+		}
 	}
+	
+	fflush(stdout);
+	while(fgetc(stdin) != EOF);
+	printf("Quit\n");
 	
 	return 0;
 }
@@ -77,12 +94,19 @@ void sim_sethertz(double hertz) {
 	} else {
 		sim_us_delay = 10000;
 		sim_ticks    = hertz / 100.0;
+		if (!sim_ticks) sim_ticks = 1;
 	}
 }
 
 // Gets the frequency in hertz to simulate at.
 double sim_gethertz() {
 	return sim_hertz;
+}
+
+// Handles a single char of term input.
+void handle_term_input(char c) {
+	if (c >= 'A' && c <= 'Z') c |= 0x60;
+	if (c == 'q') exuent = true;
 }
 
 // Handler for program exit.

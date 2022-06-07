@@ -14,6 +14,9 @@ void sim_sethertz(double hertz);
 // Gets the frequency in hertz to simulate at.
 double sim_gethertz();
 
+// Handles a single char of term input.
+void handle_term_input(char c);
+
 void exithandler();
 
 #endif //MAIN_H

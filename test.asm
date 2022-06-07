@@ -8,5 +8,8 @@
 
 	// Code entrypoint.
 entry:
-	; Discount halt instruction.
-	DEC PC
+	MOV R0, 5
+	ADD R0, 0xffff
+	// Discount halt instruction.
+.loop:
+	MOV PC, .loop
