@@ -90,8 +90,8 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 			break;
 		case (OP_SUB):
 		case (OP_CMP):
-			res = cin + (lword) ~a + (lword) ~b;
-			lword sres = cin + (lword) (a ^ 0x7fff) + (lword) (b ^ 0x7fff);
+			res = cin + (word) a + (word) ~b;
+			lword sres = cin + (lword) (a ^ 0x8000) + (lword) (b ^ 0x7fff);
 			scout = sres & 0x10000;
 			break;
 		case (OP_AND):

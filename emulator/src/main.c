@@ -7,6 +7,9 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <ctype.h>
+#include <string.h>
 
 static double sim_hertz;
 static uint64_t sim_us_delay;
@@ -21,8 +24,27 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 	
+	// Critical error signal handlers.
+	if (signal(SIGINT,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	if (signal(SIGTSTP, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	if (signal(SIGILL,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	if (signal(SIGABRT, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	if (signal(SIGFPE,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	if (signal(SIGTERM, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	goto ohsig;
+	
+	ohcrap_nosig:
+	fputs("Could not register signal handler; aborting!\n", stderr);
+	return -1;
+	
+	ohsig:
+	// Non-critical signal handlers.
+	signal(SIGHUP,  sighandler_exit);
+	signal(SIGQUIT, sighandler_exit);
+	
 	// Set TTY mode to disable line buffering and echoing.
 	system("stty cbreak -echo isig");
+	fputs("\033[?25l\033[?1049h", stdout);
 	int flags = fcntl(0, F_GETFL, 0);
 	fcntl(0, F_SETFL, flags | O_NONBLOCK);
 	
@@ -33,29 +55,30 @@ int main(int argc, char **argv) {
 	
 	// PUT TEMP.
 	const word rom[] = {
-		// 0x0000, 0x0000, 0x0003, 0x7E26, 0x0005, 0x7E00, 0xffff, 0x7FA6, 0x0007,
+		// thel nop
+		// 0xFFFF, 0xFFFF, 0x0003, 0x7191,
 		
+		// thel scren
 		0xFFFF, 0xFFFF, 0x0023, 0x0000, 0x3FFC, 0x0004, 0x0084, 0x0048,
 		0x0030, 0x0000, 0x2080, 0x3FA0, 0x2000, 0x0000, 0x3180, 0x0A00,
 		0x0400, 0x0A00, 0x3180, 0x0000, 0x2080, 0x3FA0, 0x2000, 0x0000,
 		0x3F80, 0x2480, 0x2480, 0x2080, 0x0000, 0x007C, 0x0000, 0x007C,
-		0x0054, 0x0074, 0x0000, 0x7F26, 0xFFFF, 0x7FAE, 0x0028, 0x7191,
-		0x7E26, 0xFFE0, 0x8E66, 0x0023, 0x03E6, 0xFFE0, 0x7010, 0x7FAD,
-		0x002A, 0xD9A6,
+		0x0054, 0x0074, 0x0000, 0xDF26, 0xFFFF, 0x7F05, 0xFFFF, 0x7FAE,
+		0x002A, 0x7191, 0x7E26, 0xFFE0, 0x8E66, 0x0023, 0x03E6, 0xFFE0,
+		0x7010, 0x7FAD, 0x002C, 0xD9A6,
 	};
 	badge.rom = rom;
 	badge.rom_len = sizeof(rom) / sizeof(word);
-	sim_sethertz(1000);
+	sim_sethertz(50);
 	core_reset(&cpu);
 	
-	pos reg_pos = term_getpos();
 	while (!exuent) {
-		usleep(sim_us_delay);
-		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
 		draw_display(&cpu, &mem);
-		term_setpos(reg_pos);
+		term_setxy(1, 19);
 		draw_regs(&cpu);
 		fflush(stdout);
+		usleep(sim_us_delay);
+		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
 		
 		int c;
 		fputc('q', stdin);
@@ -113,4 +136,33 @@ void handle_term_input(char c) {
 void exithandler() {
 	// Restore TTY to sane.
 	system("stty sane");
+	fputs("\033[0m\033[?25h\033[?1049l", stdout);
+}
+
+// Signal handler so as to leave a sane TTY on exit.
+void sighandler_abort(int sig) {
+	// Flush streams.
+	fflush(stderr);
+	fflush(stdout);
+	int flags = fcntl(0, F_GETFL, 0);
+	fcntl(0, F_SETFL, flags | O_NONBLOCK);
+	usleep(10000);
+	while(fgetc(stdin) != EOF);
+	
+	// Set TTY back to sane.
+	exithandler();
+	fflush(stderr);
+	fflush(stdout);
+	
+	// Fart out an error.
+	psignal(sig, "Error");
+	fflush(stderr);
+	fflush(stdout);
+	
+	exit(sig);
+}
+
+// Signal handler so as to request a clean exit.
+void sighandler_exit(int sig) {
+	exuent = true;
 }
