@@ -3,16 +3,16 @@ CC=gcc
 CFLAGS=-Isrc
 HEADERS=$(shell find ./src -type f -name "*.h")
 SOURCES=$(shell find ./src -type f -name "*.c")
-OBJECTS=$(shell find ./src -type f -name "*.c" -printf './build/%p.o\n' | sed -e 's|/src||')
-
-builddir: $(shell find src -type d | sed -e 's/src/build/')
-	mkdir -p $^
-
-./build/%.o: builddir ./src/% $(HEADERS)
-	$(CC) -ggdb -c -o $@ $< $(CFLAGS)
+OBJECTS=$(shell find ./src -type f -name "*.c" -printf '%p.o\n' | sed -e 's/src/build/')
 
 all: $(OBJECTS)
 	$(CC) -o pxe $^
+	
+builddir: $(shell find src -type d | sed -e 's/src/build/')
+	mkdir -p $^
+
+./build/%.o: ./src/% $(HEADERS) builddir
+	$(CC) -ggdb -c -o $@ $< $(CFLAGS)
 
 run:
 # Do a fancy cursor position and screen clear.
@@ -21,4 +21,5 @@ run:
 	$(MAKE) --no-print-directory all && ./pxe
 
 clean:
-	rm -rf $(find build -type f)
+	rm -f pxe
+	rm -rf ./build/*
