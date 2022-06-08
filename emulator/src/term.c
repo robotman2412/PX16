@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 /* ======== General terminal utilities ======== */
 
@@ -53,15 +54,28 @@ pos term_getsize() {
 // Describes the HURTS in human-readable form, 3 significant figures.
 // Output string is up to 10 bytes (including terminator).
 void desc_speed(double hertz, char *to) {
+	size_t buf_len = 10;
+	char fmt = ' ';
 	if (hertz >= 750000000) {
-		sprintf(to, "%4lf GHz", hertz / 1000000000);
+		fmt = 'G';
+		hertz /= 1000000000;
 	} else if (hertz >= 750000) {
-		sprintf(to, "%4lf MHz", hertz / 1000000);
+		fmt = 'M';
+		hertz /= 1000000;
 	} else if (hertz >= 750) {
-		sprintf(to, "%4lf KHz", hertz / 1000);
-	} else {
-		sprintf(to, "%4lf  Hz", hertz);
+		fmt = 'K';
+		hertz /= 1000;
 	}
+	
+	// Show 3 significant figures.
+	// Log (0, 1, 2).
+	int log      = (hertz >= 100) ? 2
+				 : (hertz >= 10)  ? 1 : 0;
+	// Padding amount?
+	int padding  = 4;
+	// Decimals count.
+	int decimals = 2 - log;
+	snprintf(to, buf_len, "%*.*lf %cHz", padding, decimals, hertz, fmt);
 }
 
 /* ======== Visualisations ======== */
@@ -108,6 +122,14 @@ void draw_display(core *cpu, memmap *mem) {
 
 // Draws the registers.
 void draw_regs(core *cpu) {
+	
+	// Make a little header bar.
+	pos old = term_getpos();
+	pos size = term_getsize();
+	term_setxy(1 + (size.x - 9) / 2, old.y);
+	fputs(ANSI_CLRLN ANSI_DEFAULT "Registers", stdout);
+	term_setxy(1, old.y+1);
+	
 	/*
 	 * Stuff to collect:
 	 * R0,   R1,   R2,  R3,  PC, ST, PF, PC
@@ -134,7 +156,6 @@ void draw_regs(core *cpu) {
 	};
 	
 	// Calculate spacing.
-	pos size = term_getsize();
 	int left = (size.x - 4*7) / 8;
 	char *strleft = malloc(left + 1);
 	memset(strleft, ' ', left);
@@ -142,20 +163,46 @@ void draw_regs(core *cpu) {
 	
 	// Start outputting the thing.
 	for (int y = 0; y < 2; y++) {
-		fputs("\033[0m", stdout);
+		fputs(ANSI_DEFAULT, stdout);
 		fputs(strleft, stdout);
 		for (int x = 0; x < 7; x++) {
 			fputs(names[y*7+x], stdout);
 			fputs(strleft, stdout);
 		}
-		fputs("\n\033[94m", stdout);
+		fputs("\n" ANSI_BLUE_FG, stdout);
 		fputs(strleft, stdout);
 		for (int x = 0; x < 7; x++) {
 			printf("%04X", regs[y*7+x]);
 			fputs(strleft, stdout);
 		}
-		fputs("\033[0m\n", stdout);
+		fputs(ANSI_DEFAULT "\n", stdout);
 	}
 	
 	free(strleft);
+}
+
+// Draws some statistics;
+void draw_stats(double target_hz, double measured_hz) {
+	
+	// Make a little header bar.
+	pos old = term_getpos();
+	pos size = term_getsize();
+	term_setxy(1 + (size.x - 10) / 2, old.y);
+	fputs(ANSI_CLRLN "Statistics", stdout);
+	term_setxy(1, old.y+1);
+	
+	// Draw freq.
+	if (isinf(target_hz)) {
+		char m[10];
+		desc_speed(measured_hz, m);
+		printf(ANSI_DEFAULT "    Frequency\n");
+		printf(ANSI_BLUE_FG "    %s " ANSI_DEFAULT "/" ANSI_BLUE_FG "    ∞\n", m);
+	} else {
+		char m[10], t[10];
+		desc_speed(measured_hz, m);
+		desc_speed(target_hz, t);
+		printf(ANSI_DEFAULT "    Frequency\n");
+		printf(ANSI_BLUE_FG "    %s " ANSI_DEFAULT "/" ANSI_BLUE_FG " %s\n", m, t);
+	}
+	
 }

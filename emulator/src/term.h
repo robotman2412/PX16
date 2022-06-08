@@ -7,7 +7,10 @@
 #include <stdbool.h>
 #include "px16.h"
 
-#define ANSI_CLRLN "\033[2K"
+#define ANSI_CLRLN   "\033[2K"
+#define ANSI_DEFAULT "\033[0m"
+
+#define ANSI_BLUE_FG "\033[94m"
 
 struct s_pos;
 
@@ -30,5 +33,7 @@ pos term_getsize();
 void draw_display(core *cpu, memmap *mem);
 // Draws the registers.
 void draw_regs(core *cpu);
+// Draws some statistics;
+void draw_stats(double target_hz, double measured_hz);
 
 #endif //TERM_H

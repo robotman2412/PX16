@@ -74,10 +74,7 @@ int main(int argc, char **argv) {
 	core_reset(&cpu);
 	
 	// Show.
-	draw_display(&cpu, &mem);
-	term_setxy(1, 19);
-	draw_regs(&cpu);
-	fflush(stdout);
+	redraw(&cpu, &mem);
 	
 	uint64_t next_time = micros() + sim_us_delay;
 	while (!exuent) {
@@ -102,15 +99,17 @@ int main(int argc, char **argv) {
 			too_fast = (tick_count - sim_ticks) * (1000000 / target_hertz);
 		}
 		
-		// Show.
-		draw_display(&cpu, &mem);
-		term_setxy(1, 19);
-		draw_regs(&cpu);
-		fflush(stdout);
-		
 		// Set next wakeup time.
+		uint64_t now = micros();
+		uint64_t prev_time = next_time;
 		next_time += sim_us_delay + too_fast;
-		if (next_time < micros() - 4*sim_us_delay) next_time = micros();
+		if (next_time < now - 4*sim_us_delay) next_time = now;
+		
+		// Measure speed.
+		measured_hertz = 0.123456;
+		
+		// Show.
+		redraw(&cpu, &mem);
 	}
 	
 	exit:
@@ -119,6 +118,17 @@ int main(int argc, char **argv) {
 	printf("Quit\n");
 	
 	return 0;
+}
+
+
+// Redraws the UI things.
+void redraw(core *cpu, memmap *mem) {
+	draw_display(cpu, mem);
+	term_setxy(1, 19);
+	draw_stats(target_hertz, measured_hertz);
+	term_setxy(1, 22);
+	draw_regs(&cpu);
+	fflush(stdout);
 }
 
 
