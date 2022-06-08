@@ -287,6 +287,10 @@ lword fast_tick(core *cpu, memmap *mem) {
 		// MOV instructions.
 		if (decide_cond(cpu, run.o)) {
 			word value = run.b == REG_IMM ? cpu->imm1 : cpu->regfile[run.b];
+			// Check for CX.
+			if (run.o == OP_MOV | COND_CX) {
+				value = (value & 0x8000) ? 0xffff : 0x0000;
+			}
 			if (run.a == REG_IMM) {
 				// Write to memory.
 				mem->mem_write(cpu, cpu->AR, value, mem->mem_ctx);
