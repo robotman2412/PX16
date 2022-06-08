@@ -165,6 +165,8 @@ void core_pretick(core *cpu, memmap *mem) {
 	
 	// TODO: Set ALU part.
 	
+	// CRACK addr bus.
+	
 	// Read (notouchy) memory.
 	bool read_mem = false;
 	if (read_mem) {
