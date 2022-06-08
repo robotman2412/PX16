@@ -121,7 +121,7 @@ void draw_display(core *cpu, memmap *mem) {
 }
 
 // Draws the registers.
-void draw_regs(core *cpu) {
+void draw_regs(core *cpu, memmap *mem) {
 	
 	// Make a little header bar.
 	pos old = term_getpos();
@@ -157,6 +157,7 @@ void draw_regs(core *cpu) {
 	
 	// Calculate spacing.
 	int left = (size.x - 4*7) / 8;
+	int delta = left + 4;
 	char *strleft = malloc(left + 1);
 	memset(strleft, ' ', left);
 	strleft[left] = 0;
@@ -177,32 +178,53 @@ void draw_regs(core *cpu) {
 		}
 		fputs(ANSI_DEFAULT "\n", stdout);
 	}
-	
 	free(strleft);
 }
 
 // Draws some statistics;
-void draw_stats(double target_hz, double measured_hz) {
+void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz) {
+	static core last_shown;
+	static bool shown = false;
 	
 	// Make a little header bar.
 	pos old = term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 10) / 2, old.y);
 	fputs(ANSI_CLRLN "Statistics", stdout);
+	
+	// Clear lines.
 	term_setxy(1, old.y+1);
+	fputs(ANSI_CLRLN "\n" ANSI_CLRLN, stdout);
 	
 	// Draw freq.
 	if (isinf(target_hz)) {
 		char m[10];
 		desc_speed(measured_hz, m);
-		printf(ANSI_DEFAULT "    Frequency\n");
-		printf(ANSI_BLUE_FG "    %s " ANSI_DEFAULT "/" ANSI_BLUE_FG "    ∞\n", m);
+		term_setxy(6, old.y+1);
+		printf(ANSI_DEFAULT "Frequency");
+		term_setxy(6, old.y+2);
+		printf(ANSI_BLUE_FG "%s " ANSI_DEFAULT "/" ANSI_BLUE_FG "    ∞\n", m);
 	} else {
 		char m[10], t[10];
 		desc_speed(measured_hz, m);
 		desc_speed(target_hz, t);
-		printf(ANSI_DEFAULT "    Frequency\n");
-		printf(ANSI_BLUE_FG "    %s " ANSI_DEFAULT "/" ANSI_BLUE_FG " %s\n", m, t);
+		term_setxy(6, old.y+1);
+		printf(ANSI_DEFAULT "Frequency");
+		term_setxy(6, old.y+2);
+		printf(ANSI_BLUE_FG "%s " ANSI_DEFAULT "/" ANSI_BLUE_FG " %s\n", m, t);
 	}
 	
+	// Draw CU state.
+	term_setxy(30, old.y+1);
+	printf(ANSI_DEFAULT "State");
+	term_setxy(30, old.y+2);
+	for (int i = 0; i < n_cu_states; i++) {
+		if (cpu->state.array[i]) {
+			printf(ANSI_BLUE_FG "%s", cu_state_names[i]);
+			break;
+		}
+	}
+	
+	last_shown = *cpu;
+	shown      = true;
 }

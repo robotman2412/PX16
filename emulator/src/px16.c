@@ -1,6 +1,17 @@
 
 #include "px16.h"
 
+// Describes CU stages.
+const char *cu_state_names[n_cu_states] = {
+	"boot0", "boot1",
+	"load0", "load1", "load2",
+	"push",  "jsr",
+	"addr",
+	"act",   "mov",
+	"pop",
+};
+
+
 // Function for packing an instruction.
  __attribute__((pure))
 word pack_insn(instr insn) {

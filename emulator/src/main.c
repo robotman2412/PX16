@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
 	if (signal(SIGABRT, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
 	if (signal(SIGFPE,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
 	if (signal(SIGTERM, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	if (signal(SIGSEGV, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
 	goto ohsig;
 	
 	ohcrap_nosig:
@@ -70,7 +71,7 @@ int main(int argc, char **argv) {
 	};
 	badge.rom = rom;
 	badge.rom_len = sizeof(rom) / sizeof(word);
-	sim_sethertz(10);
+	sim_sethertz(1000);
 	core_reset(&cpu);
 	
 	// Show.
@@ -96,7 +97,7 @@ int main(int argc, char **argv) {
 		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
 		uint64_t too_fast = 0;
 		if (tick_count > sim_ticks) {
-			// too_fast = (tick_count - sim_ticks) * (1000000 / target_hertz);
+			too_fast = (tick_count - sim_ticks) * (1000000 / target_hertz);
 		}
 		
 		// Set next wakeup time.
@@ -125,9 +126,9 @@ int main(int argc, char **argv) {
 void redraw(core *cpu, memmap *mem) {
 	draw_display(cpu, mem);
 	term_setxy(1, 19);
-	draw_stats(target_hertz, measured_hertz);
+	draw_stats(cpu, mem, target_hertz, measured_hertz);
 	term_setxy(1, 22);
-	draw_regs(cpu);
+	draw_regs(cpu, mem);
 	fflush(stdout);
 }
 

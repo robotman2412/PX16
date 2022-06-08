@@ -115,12 +115,12 @@ typedef enum {
 
 struct s_memmap;
 struct s_core;
-struct s_core_cu;
+union  s_core_cu;
 struct s_instr;
 
 typedef struct s_memmap memmap;
 typedef struct s_core core;
-typedef struct s_core_cu core_cu;
+typedef union  s_core_cu core_cu;
 typedef struct s_instr instr;
 
 struct s_memmap {
@@ -139,27 +139,31 @@ struct s_memmap {
 	void (*post_tick)(core *cpu, void *ctx);
 };
 
-struct s_core_cu {
-	// The first two cycles of startup.
-	bool boot_0, boot_1;
-	// Loading the instruction word.
-	bool load_0;
-	// Loading into register IMM0.
-	bool load_1;
-	// Loading into register IMM1.
-	bool load_2;
-	// Pre-decrementing ST for push operations.
-	bool push;
-	// Storing the PC to the stack for JSR type instructions.
-	bool jsr;
-	// Address calculations and LEA type instructions.
-	bool addr;
-	// Math type instructions.
-	bool act;
-	// MOV type instructions.
-	bool mov;
-	// Post-incrementing ST for pop operations.
-	bool pop;
+union s_core_cu {
+	struct {
+		// The first two cycles of startup.
+		bool boot_0, boot_1;
+		// Loading the instruction word.
+		bool load_0;
+		// Loading into register IMM0.
+		bool load_1;
+		// Loading into register IMM1.
+		bool load_2;
+		// Pre-decrementing ST for push operations.
+		bool push;
+		// Storing the PC to the stack for JSR type instructions.
+		bool jsr;
+		// Address calculations and LEA type instructions.
+		bool addr;
+		// Math type instructions.
+		bool act;
+		// MOV type instructions.
+		bool mov;
+		// Post-incrementing ST for pop operations.
+		bool pop;
+	};
+	// Array representation of state.
+	bool array[10];
 };
 
 struct s_instr {
@@ -204,6 +208,14 @@ struct s_core {
 	// The unpacked instruction.
 	instr current;
 };
+
+/* ==== Them descriptions ==== */
+
+// The number of control unit states that exist.
+#define n_cu_states 10
+
+// Describes CU stages.
+extern const char *cu_state_names[n_cu_states];
 
 /* ======== Functions ======== */
 

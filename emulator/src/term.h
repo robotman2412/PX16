@@ -32,8 +32,8 @@ pos term_getsize();
 // Draws the matrix display.
 void draw_display(core *cpu, memmap *mem);
 // Draws the registers.
-void draw_regs(core *cpu);
+void draw_regs(core *cpu, memmap *mem);
 // Draws some statistics;
-void draw_stats(double target_hz, double measured_hz);
+void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz);
 
 #endif //TERM_H
