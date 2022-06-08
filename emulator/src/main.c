@@ -69,24 +69,50 @@ int main(int argc, char **argv) {
 	};
 	badge.rom = rom;
 	badge.rom_len = sizeof(rom) / sizeof(word);
-	sim_sethertz(50);
+	sim_sethertz(1000);
 	core_reset(&cpu);
 	
+	// Show.
+	draw_display(&cpu, &mem);
+	term_setxy(1, 19);
+	draw_regs(&cpu);
+	fflush(stdout);
+	
+	uint64_t next_time = micros() + sim_us_delay;
 	while (!exuent) {
+		do {
+			// Check term input.
+			int c;
+			while ((c = fgetc(stdin)) != EOF) {
+				handle_term_input(c);
+			}
+			if (exuent) goto exit;
+			
+			// Sleep for a bit.
+			uint64_t sleep_time = next_time - micros();
+			if (sleep_time > 1000) sleep_time = 1000;
+			usleep(sleep_time);
+		} while(next_time > micros());
+		
+		// Simulate.
+		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
+		uint64_t too_fast = 0;
+		if (tick_count > sim_ticks) {
+			too_fast = (tick_count - sim_ticks) * (1000000 / sim_hertz);
+		}
+		
+		// Show.
 		draw_display(&cpu, &mem);
 		term_setxy(1, 19);
 		draw_regs(&cpu);
 		fflush(stdout);
-		usleep(sim_us_delay);
-		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
 		
-		int c;
-		fputc('q', stdin);
-		while ((c = fgetc(stdin)) != EOF) {
-			handle_term_input(c);
-		}
+		// Set next wakeup time.
+		next_time += sim_us_delay + too_fast;
+		if (next_time < micros() - 4*sim_us_delay) next_time = micros();
 	}
 	
+	exit:
 	fflush(stdout);
 	while(fgetc(stdin) != EOF);
 	printf("Quit\n");

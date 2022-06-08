@@ -134,14 +134,11 @@ void draw_regs(core *cpu) {
 	};
 	
 	// Calculate spacing.
-	int left = 4;
-	int spacing = 2;
+	pos size = term_getsize();
+	int left = (size.x - 4*7) / 8;
 	char *strleft = malloc(left + 1);
 	memset(strleft, ' ', left);
 	strleft[left] = 0;
-	char *strspacing = malloc(spacing + 1);
-	memset(strspacing, ' ', spacing);
-	strspacing[spacing] = 0;
 	
 	// Start outputting the thing.
 	for (int y = 0; y < 2; y++) {
@@ -161,5 +158,4 @@ void draw_regs(core *cpu) {
 	}
 	
 	free(strleft);
-	free(strspacing);
 }
