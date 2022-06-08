@@ -23,6 +23,7 @@ instr unpack_insn(word packed) {
 	};
 }
 
+
 // Decide the MOV condition for the given opcode.
 bool decide_cond(core *cpu, word opcode) {
 	opcode &= 017;
@@ -121,7 +122,9 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 	return res;
 }
 
-// Resets the core.
+
+// Resets the core in the way defined by the spec.
+// This means only resetting the CU and PC.
 void core_reset(core *cpu) {
 	cpu->state = (core_cu) {
 		.boot_0 = 1,
@@ -139,13 +142,29 @@ void core_reset(core *cpu) {
 	cpu->PC = 0;
 }
 
+
 // Simulates things that happen during the low time.
 // Does not change register or memory states.
-void core_pretick(core *cpu, memmap *mem) {}
+void core_pretick(core *cpu, memmap *mem) {
+	instr run = cpu->current;
+	
+	// Set busses.
+	cpu->par_bus_a = (run.a == 7) ? cpu->imm0 : cpu->regfile[run.a];
+	cpu->par_bus_a = (run.b == 7) ? cpu->imm1 : cpu->regfile[run.b];
+	
+	// TODO: Set ALU part.
+	
+	// Read (notouchy) memory.
+	bool read_mem = false;
+	if (read_mem) {
+		cpu->data_bus = mem->mem_read(cpu, cpu->addr_bus, true, mem->mem_ctx);
+	}
+}
 
 // Simulates the rising edge followed by the falling edge.
 // Chenges register and/or memory states.
 void core_posttick(core *cpu, memmap *mem) {}
+
 
 // Simulates one full clock cycle of the core.
 void core_tick(core *cpu, memmap *mem) {
@@ -162,6 +181,7 @@ void core_ticks(core *cpu, memmap *mem, lword cycles) {
 		core_pretick(cpu, mem);
 	}
 }
+
 
 // Simulates a full instruction instead of a number of cycles.
 // Returns the number of cycles the instruction takes in reality.

@@ -11,7 +11,8 @@
 #include <ctype.h>
 #include <string.h>
 
-static double sim_hertz;
+static double   measured_hertz;
+static double   target_hertz;
 static uint64_t sim_us_delay;
 static uint64_t sim_ticks;
 
@@ -98,7 +99,7 @@ int main(int argc, char **argv) {
 		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
 		uint64_t too_fast = 0;
 		if (tick_count > sim_ticks) {
-			too_fast = (tick_count - sim_ticks) * (1000000 / sim_hertz);
+			too_fast = (tick_count - sim_ticks) * (1000000 / target_hertz);
 		}
 		
 		// Show.
@@ -120,6 +121,7 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
+
 // Return unix time in millisecods.
 uint64_t millis() {
 	struct timespec now;
@@ -134,9 +136,10 @@ uint64_t micros() {
 	return now.tv_sec * 1000000 + now.tv_nsec / 1000;
 }
 
+
 // Sets the frequency in hertz to simulate at.
 void sim_sethertz(double hertz) {
-	sim_hertz = hertz;
+	target_hertz = hertz;
 	if (hertz < 100) {
 		sim_ticks = 1;
 		sim_us_delay = 1000000.0 / hertz;
@@ -149,14 +152,21 @@ void sim_sethertz(double hertz) {
 
 // Gets the frequency in hertz to simulate at.
 double sim_gethertz() {
-	return sim_hertz;
+	return target_hertz;
 }
+
+// Gets the measured frequency in hertz.
+double sim_measurehertz() {
+	return measured_hertz;
+}
+
 
 // Handles a single char of term input.
 void handle_term_input(char c) {
 	if (c >= 'A' && c <= 'Z') c |= 0x60;
 	if (c == 'q') exuent = true;
 }
+
 
 // Handler for program exit.
 void exithandler() {
@@ -185,6 +195,7 @@ void sighandler_abort(int sig) {
 	fflush(stderr);
 	fflush(stdout);
 	
+	// Exuent.
 	exit(sig);
 }
 

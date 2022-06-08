@@ -9,10 +9,12 @@ uint64_t millis();
 // Return unix time in microseconds.
 uint64_t micros();
 
-// Sets the frequency in hertz to simulate at.
+// Sets the target frequency in hertz to simulate at.
 void sim_sethertz(double hertz);
-// Gets the frequency in hertz to simulate at.
+// Gets the target frequency in hertz to simulate at.
 double sim_gethertz();
+// Gets the measured frequency in hertz.
+double sim_measurehertz();
 
 // Handles a single char of term input.
 void handle_term_input(char c);
