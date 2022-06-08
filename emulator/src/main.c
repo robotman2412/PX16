@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
 	};
 	badge.rom = rom;
 	badge.rom_len = sizeof(rom) / sizeof(word);
-	sim_sethertz(1000);
+	sim_sethertz(10);
 	core_reset(&cpu);
 	
 	// Show.
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
 		uint64_t too_fast = 0;
 		if (tick_count > sim_ticks) {
-			too_fast = (tick_count - sim_ticks) * (1000000 / target_hertz);
+			// too_fast = (tick_count - sim_ticks) * (1000000 / target_hertz);
 		}
 		
 		// Set next wakeup time.
@@ -127,7 +127,7 @@ void redraw(core *cpu, memmap *mem) {
 	term_setxy(1, 19);
 	draw_stats(target_hertz, measured_hertz);
 	term_setxy(1, 22);
-	draw_regs(&cpu);
+	draw_regs(cpu);
 	fflush(stdout);
 }
 
