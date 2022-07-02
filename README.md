@@ -16,7 +16,7 @@ RISC is not equal to RISC-V.
 PX16 cannot address bytes.
 
 # TODO
-Crap i do be workin on:
+Stuf i do be workin on:
 - Interrupts
 - Emulator
 - Finalise MMIO Hardware
