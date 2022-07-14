@@ -38,7 +38,7 @@ Examples:
 
 MMIO:
 	0xffff:			MMIO Size			(0x0040)
-	0xfffe:			Power/timer mode	(6-bit + 5-bit)
+	0xfffe:			Power/timer mode	(6-bit + 6-bit)
 	0xfffd:			Button input		(10-bit)
 	0xfffb:			Timer 0 high
 	0xfffa:			Timer 0 low

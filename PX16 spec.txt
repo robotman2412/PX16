@@ -19,7 +19,7 @@ Y: Apply complex operand to B instead of A
 6.  LEA.C   ULT UGT SLT SGT EQ  CS  1
 7.  LEA.C   UGE ULE SGE SLE NE  CC  JSR
 
-Note: Because CMP is much like SUB, CMP is still valid for MATH1 and the B is then 1.
+Note: Because CMP is much like SUB, CMP is still valid for MATH1.
 
 Registers:
 R0, R1, R2, R3, ST, PF, PC, imm
@@ -54,10 +54,13 @@ BRK.NMI:
 
 Flag register (PF) layout:
 15.. .... .... ...0
-SUZ. .... .... ..IN
+SUZ. .... ...P BCIN
 S: Signed carry out
 U: Unsigned carry out
 Z: Zero
+P: Interrupt in progress
+B: Trigger IRQ break
+C: Trigger NMI break
 I: IRQ enable
 N: NMI enable
 
@@ -74,6 +77,7 @@ States:
     Addr: Address calculation and memory access
     Act:  Enact the instruction
     Pop:  Post-increment ST
+    Intr: Load interrupt presets and set interrupt flag
 
 State matrix:
             INC WR  WM  RM  W       AIA AIB AXA AXB Cin     ADD OR  XOR SHL SHR     A   B   Dst Si0 Si1
