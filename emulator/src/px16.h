@@ -159,9 +159,11 @@ union s_core_cu {
 		bool mov;
 		// Post-incrementing ST for pop operations.
 		bool pop;
+		// Interrupt handling cycles.
+		bool intr_0, intr_1, intr_2, intr_3, intr_4;
 	};
 	// Array representation of state.
-	bool array[10];
+	bool array[16];
 };
 
 struct s_instr {
@@ -196,21 +198,23 @@ struct s_core {
 		// Registers clumped into an array.
 		word regfile[7];
 	};
-	// The registers that store numeric constants.
-	word imm0, imm1;
+	// The registers that store constants.
+	word    imm0, imm1;
 	// The register that stores the memory access address.
-	word AR;
+	word    AR;
 	/* ==== Control unit state ==== */
+	// Helper register that makes return from interrupt possible.
+	bool    intr_helper;
 	// Contains the stage of execution the CPU is busy with.
 	core_cu state;
 	// The unpacked instruction.
-	instr current;
+	instr   current;
 };
 
 /* ==== Them descriptions ==== */
 
 // The number of control unit states that exist.
-#define n_cu_states 10
+#define n_cu_states 16
 
 // Describes CU stages.
 extern const char *cu_state_names[n_cu_states];

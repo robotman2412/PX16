@@ -96,7 +96,7 @@ void draw_display(core *cpu, memmap *mem) {
 	pos old = term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 14) / 2, 1);
-	fputs(ANSI_CLRLN "Matrix Display", stdout);
+	fputs(ANSI_CLRLN ANSI_BOLD "Matrix Display", stdout);
 	term_setxy(1, 2);
 	
 	// And fart out everything.
@@ -127,7 +127,7 @@ void draw_regs(core *cpu, memmap *mem) {
 	pos old = term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 9) / 2, old.y);
-	fputs(ANSI_CLRLN ANSI_DEFAULT "Registers", stdout);
+	fputs(ANSI_CLRLN ANSI_DEFAULT ANSI_BOLD "Registers", stdout);
 	term_setxy(1, old.y+1);
 	
 	/*
@@ -150,9 +150,9 @@ void draw_regs(core *cpu, memmap *mem) {
 	regs[13] = cpu->AR;
 	
 	// Names to fart out.
-	const char names[14][5] = {
-		"R0  ", "R1  ", "R2  ", "R3  ", "ST  ", "PF  ", "PC  ",
-		"imm0", "imm1", "PbA ", "PbB ", "Db  ", "Ab  ", "AR  ",
+	const char *names[14] = {
+		ANSI_GREEN_FG "R0  ", "R1  ", "R2  ", "R3  ", ANSI_YELLOW_FG "ST  ", "PF  ", "PC  ",
+		ANSI_RED_FG   "imm0", "imm1", "PbA ", "PbB ", "Db  ", "Ab  ", "AR  ",
 	};
 	
 	// Calculate spacing.
@@ -170,7 +170,7 @@ void draw_regs(core *cpu, memmap *mem) {
 			fputs(names[y*7+x], stdout);
 			fputs(strleft, stdout);
 		}
-		fputs("\n" ANSI_BLUE_FG, stdout);
+		fputs("\n" ANSI_DEFAULT ANSI_BLUE_FG, stdout);
 		fputs(strleft, stdout);
 		for (int x = 0; x < 7; x++) {
 			printf("%04X", regs[y*7+x]);
@@ -190,7 +190,7 @@ void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz) {
 	pos old = term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 10) / 2, old.y);
-	fputs(ANSI_CLRLN "Statistics", stdout);
+	fputs(ANSI_CLRLN ANSI_BOLD "Statistics", stdout);
 	
 	// Clear lines.
 	term_setxy(1, old.y+1);

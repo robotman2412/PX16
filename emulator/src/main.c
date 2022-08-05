@@ -15,6 +15,12 @@ static double   measured_hertz;
 static double   target_hertz;
 static uint64_t sim_us_delay;
 static uint64_t sim_ticks;
+static bool     running;
+static uint64_t step;
+
+static core cpu;
+static memmap mem;
+static badge_mmap badge;
 
 static bool exuent = false;
 
@@ -50,9 +56,7 @@ int main(int argc, char **argv) {
 	int flags = fcntl(0, F_GETFL, 0);
 	fcntl(0, F_SETFL, flags | O_NONBLOCK);
 	
-	core cpu;
-	memmap mem;
-	badge_mmap badge;
+	running = false;
 	badge_mmap_create(&badge, &mem);
 	
 	// PUT TEMP.
@@ -79,19 +83,34 @@ int main(int argc, char **argv) {
 	
 	uint64_t next_time = micros() + sim_us_delay;
 	while (!exuent) {
-		do {
-			// Check term input.
-			int c;
-			while ((c = fgetc(stdin)) != EOF) {
-				handle_term_input(c);
+		if (running) {
+			do {
+				// Check term input.
+				int c;
+				while ((c = fgetc(stdin)) != EOF) {
+					handle_term_input(c);
+				}
+				if (exuent) goto exit;
+				
+				// Sleep for a bit.
+				uint64_t sleep_time = next_time - micros();
+				if (sleep_time > 1000) sleep_time = 1000;
+				usleep(sleep_time);
+			} while(next_time > micros());
+		} else {
+			while (!running) {
+				// Check term input.
+				int c;
+				while ((c = fgetc(stdin)) != EOF) {
+					handle_term_input(c);
+				}
+				if (exuent) goto exit;
+				
+				// Sleep for a bit.
+				usleep(10000);
 			}
-			if (exuent) goto exit;
-			
-			// Sleep for a bit.
-			uint64_t sleep_time = next_time - micros();
-			if (sleep_time > 1000) sleep_time = 1000;
-			usleep(sleep_time);
-		} while(next_time > micros());
+			next_time = micros() + sim_us_delay;
+		}
 		
 		// Simulate.
 		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
@@ -174,8 +193,21 @@ double sim_measurehertz() {
 
 // Handles a single char of term input.
 void handle_term_input(char c) {
+	// Make all lowercase.
 	if (c >= 'A' && c <= 'Z') c |= 0x60;
-	if (c == 'q') exuent = true;
+	
+	if (c == ' ' || c == 'p') {
+		// Play / pause command.
+		running = !running;
+		step    = 0;
+	} else if (c == 's') {
+		// Step command.
+		fast_tick(&cpu, &mem);
+		redraw(&cpu, &mem);
+	} else if (c == 'q') {
+		// Quit command.
+		exuent = true;
+	}
 }
 
 

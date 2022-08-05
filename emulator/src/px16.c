@@ -1,5 +1,6 @@
 
 #include "px16.h"
+#include <string.h>
 
 // Describes CU stages.
 const char *cu_state_names[n_cu_states] = {
@@ -9,6 +10,7 @@ const char *cu_state_names[n_cu_states] = {
 	"addr",
 	"act",   "mov",
 	"pop",
+	"intr0", "intr1", "intr2", "intr3", "intr4",
 };
 
 
@@ -137,19 +139,8 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 // Resets the core in the way defined by the spec.
 // This means only resetting the CU and PC.
 void core_reset(core *cpu) {
-	cpu->state = (core_cu) {
-		.boot_0 = 1,
-		.boot_1 = 0,
-		.load_0 = 0,
-		.load_1 = 0,
-		.load_2 = 0,
-		.push   = 0,
-		.jsr    = 0,
-		.addr   = 0,
-		.act    = 0,
-		.mov    = 0,
-		.pop    = 0,
-	};
+	memset(&cpu->state, 0, sizeof(cpu->state));
+	cpu->state.boot_0 = true;
 	cpu->PC = 0;
 }
 
@@ -248,15 +239,19 @@ lword fast_tick(core *cpu, memmap *mem) {
 	}
 	// Check for addr stage.
 	if (run.x != ADDR_IMM) {
+		// Determine register for memory access.
 		reg regno = run.y ? run.b : run.a;
 		word regval = regno != REG_IMM ? cpu->regfile[regno]
 					: (run.y ? cpu->imm1 : cpu->imm0);
+		// Determine address.
 		if (run.x == ADDR_MEM) {
 			cpu->AR = regval;
 		} else {
 			cpu->AR = regval + cpu->regfile[run.x];
 		}
+		// Read from memory.
 		word data = mem->mem_read(cpu, cpu->AR, false, mem->mem_ctx);
+		// Write back to correct IMM register.
 		if (run.y) {
 			run.b = REG_IMM;
 			cpu->imm1 = data;
@@ -287,8 +282,8 @@ lword fast_tick(core *cpu, memmap *mem) {
 		// MOV instructions.
 		if (decide_cond(cpu, run.o)) {
 			word value = run.b == REG_IMM ? cpu->imm1 : cpu->regfile[run.b];
-			// Check for CX.
-			if (run.o == OP_MOV | COND_CX) {
+			// Check for carry extend condition.
+			if (run.o == (OP_MOV | COND_CX)) {
 				value = (value & 0x8000) ? 0xffff : 0x0000;
 			}
 			if (run.a == REG_IMM) {
@@ -302,7 +297,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	}
 	took ++;
 	// Check for pop.
-	if (run.y && run.x == ADDR_MEM && run.a == REG_ST) {
+	if (run.y && run.x == ADDR_MEM && run.b == REG_ST) {
 		cpu->ST ++;
 		took ++;
 	}

@@ -34,8 +34,14 @@ Addressing modes:
     6: APC  [A+PC]
     7: IMM   A
 
+SEI:
+    OR  PF, 0x0003
+
+CLI:
+    AND PF, 0xfffd
+
 JMP:
-    MOV PC, [PC+imm]
+    LEA PC, [PC+imm]
 
 JSR:
     LEA.JSR PC, [PC+imm]
@@ -44,23 +50,40 @@ RET:
     MOV PC, [ST]
 
 RTI:
-    MOV.RTI PC, [ST]
+    // PX16 will not trigger interrupts immediately after this instruction.
+    // This allows the return from interrupt to be 2 typical instructions.
+    MOV PF, [ST]
+    MOV PC, [ST]
 
 BRK.IRQ:
-    MOV.BRK PC, [0]
+    // There is no real way to do this, because it is an uncommon operation.
+    // I'd recommend making a method specifically for this purpose:
+brk_irq:
+    // Push flags, after PC, the same way interrupts are generated.
+    MOV [ST], PF
+    // Set interrupt in progress and software triggered flags.
+    OR  PF, 0x000c
+    // Jump to IRQ handler.
+    MOV PC, [0]
 
 BRK.NMI:
-    MOV.BRK PC, [1]
+    // Similar to BRK.IRQ, but jump based on addr 1:
+brk_irq:
+    // Push flags, after PC, the same way interrupts are generated.
+    MOV [ST], PF
+    // Set interrupt in progress and software triggered flags.
+    OR  PF, 0x000c
+    // Jump to NMI handler.
+    MOV PC, [1]
 
 Flag register (PF) layout:
 15.. .... .... ...0
-SUZ. .... ...P BCIN
+SUZ. .... .... PSIN
 S: Signed carry out
 U: Unsigned carry out
 Z: Zero
 P: Interrupt in progress
-B: Trigger IRQ break
-C: Trigger NMI break
+S: Interrupt was software triggered
 I: IRQ enable
 N: NMI enable
 
@@ -77,7 +100,12 @@ States:
     Addr: Address calculation and memory access
     Act:  Enact the instruction
     Pop:  Post-increment ST
-    Intr: Load interrupt presets and set interrupt flag
+    Intr:
+        Intr 0: Pre-decrement ST
+        Intr 1: Push PC to stack
+        Intr 2: Pre-decrement ST
+        Intr 3: Push PF to stack and clear intr enable
+        Intr 4: Set PC to interrupt vector (*0 for IRQ, *1 for NMI)
 
 State matrix:
             INC WR  WM  RM  W       AIA AIB AXA AXB Cin     ADD OR  XOR SHL SHR     A   B   Dst Si0 Si1
@@ -89,11 +117,17 @@ State matrix:
     Load 2: 1   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   6   -   -   1
     
     Push:   -   1   -   -   -       -   1   -   1   -       1   -   -   -   -       4   -   4   -   -
-    Jsr:    -   -   1   -   -       -   -   1   -   -       -   1   -   -   -       -   4   -   -   -
+    Jsr:    -   -   1   -   -       -   -   1   -   -       -   1   -   -   -       -   6   -   -   -
     Addr:   Depends on addressing mode
     Mov:    Depends on opcode
     Act:    Depends on opcode
     Pop:    -   1   -   -   -       -   -   -   1   1       1   -   -   -   -       4   -   4   -   -
+    
+    Intr 0: -   1   -   -   -       -   1   -   1   -       1   -   -   -   -       4   -   4   -   -
+    Intr 1: -   -   1   -   -       -   -   1   -   -       -   1   -   -   -       -   6   -   -   -
+    Intr 2: -   1   -   -   -       -   1   -   1   -       1   -   -   -   -       4   -   4   -   -
+    Intr 3: -   -   1   -   -       -   -   1   -   -       -   1   -   -   -       -   5   -   -   -
+    Intr 4: -   1   -   1   -       -   -   1   -   -       -   1   -   -   -       -   -   6   -   -
     
 Addressing matrix:
     ARx     -   -   -   1   -       -   -   -   -   -       1   -   -   -   -       X   Ry  -   -   -
