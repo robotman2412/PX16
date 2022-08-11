@@ -47,6 +47,7 @@ MMIO:
 	0xfff7:			UART mode?
 	0xfff6:			UART write?
 	0xfff5:			UART read?
+	0xfff4:			Interrupt sense
 	0xffc0-0xffdf:	Matrix display
 
 Power mode register: .DLI ---- .TBS ----
@@ -56,8 +57,17 @@ Power mode register: .DLI ---- .TBS ----
 	T: Timer state:  Timers may wake from sleep when 0.
 	B: Button state: Buttons may wake from sleep when 0.
 	S: Screen state: Enables the screen when 0.
-	The high half (0xf000 mask) of this register does not store state (no underlying register).
-	This is because otherwise there would be no way to exit sleep modes.
+
+Timer triggers:      ---- BTRW ---- ----
+	B: Interrupts:   Acknowledge button interrupt.
+	T: Interrupts:   Acknowledge timer interrupt.
+	R: Read value:   Read current value to intermediary registers.
+	W: Write value:  Write intermediary registers current value.
+
+Timer mode register: ---- ---- ---- .INE
+	I: Interrupts:   Send an IRQ when the limit is reached.
+	N: Interrupts:   Send an NMI when the limit is reached.
+	E: Enable:       Enable the timer.
 
 Button input:
 	    .---.                      .-.    
@@ -72,13 +82,3 @@ Button input:
 	          \__8__\     \__9__\         
 	
 	The button inputs are mapped directly to the bus through a buffer.
-
-Timer mode register: ---- .CRW ---- .INE
-	C: Interrupts:   Acknowledge interrupt.
-	R: Read value:   Read current value to intermediary registers.
-	W: Write value:  Write intermediary registers current value.
-	I: Interrupts:   Send an IRQ when the limit is reached.
-	N: Interrupts:   Send an NMI when the limit is reached.
-	E: Enable:       Enable the timer.
-	The high half (0x0f00 mask) of this register does not store state (no underlying register).
-	This is because otherwise these are triggers.
