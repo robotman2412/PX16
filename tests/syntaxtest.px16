@@ -1,0 +1,15 @@
+
+// This is a PC comment?
+	.db "This string", 0
+	
+; region
+label:
+.sublabel:
+	MOV.CX R0, PC
+	
+labelagain:
+
+// region
+// endregion
+
+// endregion
