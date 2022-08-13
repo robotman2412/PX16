@@ -104,7 +104,7 @@ strrchr:
 	PSH		R2
 	MOV		R2, 0
 .loop:
-	; Compare against desired bullshit.
+	; Compare against desired character.
 	CMP		[R0], R1
 	MOV.EQ	R2, R0
 	; Compare against zero.
@@ -125,7 +125,7 @@ strrchr:
 	;   R0: Pointer to found character.
 strchr:
 .loop:
-	; Compare against desired bullshit.
+	; Compare against desired character.
 	CMP		[R0], R1
 	BEQ		.yeems
 	; Compare against zero.
