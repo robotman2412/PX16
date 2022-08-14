@@ -23,10 +23,6 @@ entry:
 	MOV ST, 0xffff
 	SUB ST, [0xffff]
 	
-	// Read button state.
-	MOV R0, [0xfffd]
-	MOV [0x8000], R0
-	
 	// Test whether timer is still enabled.
 	MOV R0, [0xfffe]
 	AND R0, 0x0001
@@ -41,7 +37,7 @@ entry:
 	MOV.JSR PC, print
 	
 	// Enable interrupts.
-	// OR  PF, 0x0002
+	OR  PF, 0x0002
 	
 	// Initialise timer.
 	// Set time to 0.

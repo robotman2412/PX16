@@ -16,33 +16,30 @@ isr_ignore:
 	MOV PC, [ST]
 
 
-yield:
-	// Store flags and disable interrupts.
-	MOV [ST], PF
-	AND PF, 0xfffc
-	// Flow into the ISR context switch thing.
-
 	// ISR that invokes context switching.
 isr_switch:
 	// Store context (registers).
-	// MOV R0, [ST]
-	// MOV R1, [ST]
-	// MOV R2, [ST]
-	// MOV R3, [ST]
-	// // Invoke the (very dumb) scheduler to change the stack register.
-	// MOV.JSR PC, scheduler
-	// // Start, ack. irq, zero timer, enable NMI.
-	// MOV [0xfffe], 0x0d06
+	MOV R0, [ST]
+	MOV R1, [ST]
+	MOV R2, [ST]
+	MOV R3, [ST]
+	// Debug trap.
+	MOV [0xfffe], 0x1d00
+	// Invoke the (very dumb) scheduler to change the stack register.
+	MOV.JSR PC, scheduler
+.schedret:
+	// Start, ack. irq, zero timer, enable NMI.
+	MOV [0xfffe], 0x0d03
 	// Notify.
 	MOV [0xfff6], 0x53
 	MOV [0xfff6], 0x77
 	MOV [0xfff6], 0x0a
 	
-	// // Load other context.
-	// MOV R3, [ST]
-	// MOV R2, [ST]
-	// MOV R1, [ST]
-	// MOV R0, [ST]
+	// Load other context.
+	MOV R3, [ST]
+	MOV R2, [ST]
+	MOV R1, [ST]
+	MOV R0, [ST]
 	// Return from interrupt.
 	MOV PF, [ST]
 	MOV PC, [ST]
@@ -58,7 +55,7 @@ scheduler:
 	MOV PC, [ST]
 
 
-//endregion tasks
+// endregion tasks
 
 
 // region entry
@@ -68,26 +65,29 @@ entry:
 	MOV [0xfffe], 0
 	XOR R0, R0
 	
-	// Set up timer.
+	// Set time to 0.
 	MOV [0xfffa], R0
 	MOV [0xfffb], R0
-	// Set up limit.
+	// Set limit.
 	MOV [0xfff8], 1000
 	MOV [0xfff9], R0
 	
 	// Create dummy stack for thread A.
 	MOV ST, 0xe000
 	MOV [ST], thread_a
+	MOV [ST], 0x0001
 	MOV [ST], R0
 	MOV [ST], R0
 	MOV [ST], R0
 	MOV [ST], R0
-	MOV [ST], R0
+	MOV [ST], isr_switch.schedret
+	MOV [otherthread], ST
 	
 	// Start, ack. irq, zero timer, enable NMI.
-	MOV [0xfffe], 0x0d06
+	MOV [0xfffe], 0x0d03
 	
 	// Enable NMI.
+	MOV ST, 0xd000
 	MOV PF, 0x0001
 	
 	// We are now thread B, go to that loop.
@@ -114,6 +114,7 @@ print:
 
 	// Idle for 4+5*R0 cycles.
 idle:
+	// DEC PC
 	DEC R0
 	MOV.CS PC, idle
 	MOV PC, [ST]
@@ -124,27 +125,27 @@ thread_a:
 	// Set R3 to B to indicate thread.
 	MOV R3, 0xB0B0
 .loop:
-	// Idle for 100.
-	MOV R0, 100
-	MOV.JSR PC, idle
 	// Print message.
 	MOV R0, msg_a
 	MOV.JSR PC, print
+	// Idle for 100.
+	MOV R0, 100
+	MOV.JSR PC, idle
 	// Loop back.
 	MOV PC, .loop
 
 
 	// Thread B loop.
-thread_a:
+thread_b:
 	// Set R3 to A to indicate thread.
 	MOV R3, 0x0A0A
 .loop:
-	// Idle for 200.
-	MOV R0, 200
-	MOV.JSR PC, idle
 	// Print message.
 	MOV R0, msg_b
 	MOV.JSR PC, print
+	// Idle for 200.
+	MOV R0, 200
+	MOV.JSR PC, idle
 	// Loop back.
 	MOV PC, .loop
 
