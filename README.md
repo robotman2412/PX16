@@ -18,6 +18,7 @@ PX16 cannot address bytes.
 
 # TODO
 Stuf i do be workin on:
+- PCB edition
 - Emulator
 - Finalise MMIO Hardware
 - C Compiler
