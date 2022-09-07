@@ -4,16 +4,7 @@
     "active_layer_preset": "",
     "auto_track_width": true,
     "hidden_nets": [
-      "GND",
-      "+5V",
-      "/CLK",
-      "/QNMI",
-      "/QIRQ",
-      "/QIntSw",
-      "/QIntProg",
-      "/QZero",
-      "/QUCout",
-      "/QSCout"
+      ""
     ],
     "high_contrast_mode": 0,
     "net_color_mode": 1,
@@ -73,7 +64,7 @@
       35,
       36
     ],
-    "visible_layers": "ffcffff_ffffffff",
+    "visible_layers": "ffcffef_ffffffff",
     "zone_display_mode": 0
   },
   "meta": {
