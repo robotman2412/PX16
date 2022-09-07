@@ -134,3 +134,51 @@ This mode doesn't make sense to use in `MATH1` or as A parameter to `MATH2`.
 
 The stack grown down in the address space in a pre-decrement way.
 This means that the top value in the stack is at `[ST+0x0000]`.
+
+# Implementation of functions
+PX16 functions follow simple calling conventions
+- When the arguments total up to 4 words, registers are used for passing the arguments.
+- Otherwise, the stack is used, where the last parameter is pushed first.
+- On return, the same rules apply to the return value.
+- Any registers not used to pass args or return should be preserved by the callee.
+
+Here is a typical function based on the following C:
+```c
+int multiplyByTwo(int value) {
+    return value << 1;
+}
+```
+And assembly:
+```
+multiplyByTwo:
+    // Preserve other registers.
+    MOV [ST], R3
+    MOV [ST], R2
+    MOV [ST], R1
+    // value << 1
+    SHL R0
+    // Restore other registers.
+    mov R1, [ST]
+    mov R2, [ST]
+    mov R3, [ST]
+    // return
+    MOV PC, [ST]
+```
+
+# Interrupt handling
+When an interrupt occurs, the PC followed by PF are pushed to the stack.
+Then, [0x0000] (for NMI type) or [0x0001] (for IRQ type) is loaded into the PC.
+
+At this point, it is up to the interrupt handler to do it's things, after which it returns with the following:
+```
+    // Restore flags, which reenables interrupts after the return.
+    MOV PF, [ST]
+    // Return by popping PC off the stack.
+    MOV PC, [ST]
+```
+
+# Initial startup
+After reset signal clears, Pixie 16 takes 1-2 cycles to load the entrypoint address from [0x0002].
+At this point, all registers are zero, including PF, which means that Pixie 16 starts by jumping to the entrypoint with interrupts disabled.
+
+Pixie 16 (and any occasional additional hardware) are designed  such that 0 is the "safe state", which means that the hardware or CPU are in a defined state when registers are all zero.
