@@ -1,6 +1,6 @@
 emulator/build
 emulator/pxe
 .vscode
-kicad/dev/px16_regfile/px16_regfile-backups
-kicad/dev/px16_regfile/_autosave-*
-kicad/dev/px16_regfile/#auto_saved_files#
+kicad/dev/*/*-backups
+kicad/dev/*/_autosave-*
+kicad/dev/*/#auto_saved_files#
