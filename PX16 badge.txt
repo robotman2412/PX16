@@ -22,7 +22,7 @@ Power modes:
 		CPU and RAM will reset on exit.
 	Off:
 		Powered off, battery disconnected.
-		Entered by turning off the power switch.
+		Literally just a power switch.
 
 Examples:
 	On:
@@ -45,9 +45,14 @@ MMIO:
 	0xfff9:			Limit 0 high
 	0xfff8:			Limit 0 low
 	0xfff7:			UART mode?
-	0xfff6:			UART write?
+	0xfff6:			UART write
 	0xfff5:			UART read?
-	0xfff4:			Interrupt sense
+	0xfff4:			Interrupt sense?
+	0xfff3:			Div/Mul mode
+	0xfff2:			Memory mode?
+	0xfffc-0xffff:	Div/Mul accumulator
+	0xfff8-0xfffb:	Div/Mul remainder
+	0xfff4-0xfff7:	Div/Mul divisor
 	0xffc0-0xffdf:	Matrix display
 
 Power mode register: .DLI ---- .TBS ----
@@ -69,6 +74,25 @@ Timer mode register: ---- ---- ---- .INE
 	N: Interrupts:   Send an NMI when the limit is reached.
 	E: Enable:       Enable the timer.
 
+Interrupt sense register (NMI): ---- MBTU ---- ----
+	M: Div/Mul unit interrupt
+	B: Button interrupt
+	T: Timer interrupt
+	U: UART recv interrupt.
+
+Interrupt sense register (IRQ): ---- ---- ---- MBTU
+	M: Div/Mul unit interrupt
+	B: Button interrupt
+	T: Timer interrupt
+	U: UART recv interrupt.
+
+Memory mode register: ---- ---- ..WR LLLL
+	W: Write enable:	Writes through to RAM when 1.
+	R: Read select:		Reads from RAM when 1, ROM when 0.
+	L: ROM length?:		Length of affected range, unit TBD.
+	
+	Do not assume that this register is reset.
+
 Button input:
 	    .---.                      .-.    
 	    | 1 |               .-.   ( 5 )   
@@ -82,3 +106,46 @@ Button input:
 	          \__8__\     \__9__\         
 	
 	The button inputs are mapped directly to the bus through a buffer.
+
+Div/Mul mode register: .OAC .WTM LIBB BBBB
+	A: Activity:		Reads 1 when the unit is active.
+	C: Current mode:	Reflects the current operating mode, if active.
+	O: Overflow:		Reads 1 when multiply overflows.
+	W: Await:			(Optional?) Halts the CPU until the unit is done.
+	T: Trigger:			Start the unit.
+	M: Mode:			Mode to run in, 1 is divide, 0 is multiply.
+	L: Long mode?:		(Optional?) Clears highest 32 bits of registers, to save time moving data.
+	I: Integer mode?:	(Optional?) Clears highest 48 bits of registers, to save time moving data.
+	B: Bits:			Number of bits (and cycles duration) to operate for.
+	
+	To multiply:
+		Put inputs in accumulator and divisor,
+		Start with mode 1,
+		Read result from remainder.
+	
+	To divide:
+		Put divisor in its register,
+		Put other number in remainder,
+		Start with mode 0,
+		Read division result from accumulator,
+		Read modulo result from remainder.
+	
+	To shift left:
+		Put input in accumulator,
+		Put 0 in remainder,
+		Start with mode 1,
+		Read result from accumulator.
+	
+	To shift right:
+		Put input in divisor,
+		Put 0 in remainder,
+		Start with mode 1,
+		Read result from divisor.
+	
+	Shift left and shift right can be performed at the same time, given the same shift number.
+	The number of bits to shift is the bits input.
+	
+	When in multiply mode, resets remainder on trigger,
+	When in divide mode, resets accumulator on trigger.
+	
+	If integer mode and long mode are combined, clears only the highest 16 bits.
