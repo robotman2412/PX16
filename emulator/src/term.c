@@ -141,18 +141,17 @@ void draw_regs(core *cpu, memmap *mem) {
 	// Collect IMM.
 	regs[7]  = cpu->imm0;
 	regs[8]  = cpu->imm1;
-	// Collect busses.
+	// Collect HIDDEN.
 	regs[9]  = cpu->par_bus_a;
 	regs[10] = cpu->par_bus_b;
-	regs[11] = cpu->data_bus;
-	regs[12] = cpu->addr_bus;
-	// Collect AR.
-	regs[13] = cpu->AR;
+	regs[11] = cpu->AR;
+	regs[12] = cpu->data_bus;
+	regs[13] = cpu->addr_bus;
 	
 	// Names to fart out.
 	const char *names[14] = {
 		ANSI_GREEN_FG "R0  ", "R1  ", "R2  ", "R3  ", ANSI_YELLOW_FG "ST  ", "PF  ", "PC  ",
-		ANSI_RED_FG   "imm0", "imm1", "PbA ", "PbB ", "Db  ", "Ab  ", "AR  ",
+		ANSI_RED_FG   "imm0", "imm1", "PbA ", "PbB ", "AR  ", "Db  ", "Ab  ",
 	};
 	
 	// Calculate spacing.
@@ -182,7 +181,7 @@ void draw_regs(core *cpu, memmap *mem) {
 }
 
 // Draws some statistics;
-void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz) {
+void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, uint64_t tick_count) {
 	static core last_shown;
 	static bool shown = false;
 	
@@ -215,15 +214,13 @@ void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz) {
 	}
 	
 	// Draw CU state.
-	term_setxy(30, old.y+1);
-	printf(ANSI_DEFAULT "State");
-	term_setxy(30, old.y+2);
-	for (int i = 0; i < n_cu_states; i++) {
-		if (cpu->state.array[i]) {
-			printf(ANSI_BLUE_FG "%s", cu_state_names[i]);
-			break;
-		}
-	}
+	term_setxy(40, old.y+1);
+	printf(ANSI_DEFAULT "Ticks");
+	term_setxy(40, old.y+2);
+	printf(ANSI_BLUE_FG "%d", tick_count);
+	
+	// Draw total tick count.
+	
 	
 	last_shown = *cpu;
 	shown      = true;

@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include "px16.h"
 
+extern uint64_t sim_total_ticks;
+
 // Return unix time in millisecods.
 uint64_t millis();
 // Return unix time in microseconds.

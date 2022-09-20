@@ -69,6 +69,6 @@ void draw_display(core *cpu, memmap *mem);
 // Draws the registers.
 void draw_regs(core *cpu, memmap *mem);
 // Draws some statistics;
-void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz);
+void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, uint64_t tick_count);
 
 #endif //TERM_H

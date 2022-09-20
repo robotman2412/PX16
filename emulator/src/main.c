@@ -24,6 +24,8 @@ static badge_mmap badge;
 
 static bool exuent = false;
 
+uint64_t sim_total_ticks = 0;
+
 int main(int argc, char **argv) {
 	// Add the exit handler.
 	if (atexit(exithandler)) {
@@ -64,6 +66,14 @@ int main(int argc, char **argv) {
 		// thel nop
 		// 0xFFFF, 0xFFFF, 0x0003, 0x7191,
 		
+// FFFF FFFF 0023 0000 3FFC 0004 0084 0048
+// 0030 0000 2080 3FA0 2000 0000 3180 0A00
+// 0400 0A00 3180 0000 2080 3FA0 2000 0000
+// 3F80 2480 2480 2080 0000 007C 0000 007C
+// 0054 0074 0000 DF26 FFFF 7F05 FFFF 7FAE
+// 002A 7191 7E26 FFE0 8E66 0023 03E6 FFE0
+// 7010 7FAD 002C D9A6
+		
 		// thel scren
 		0xFFFF, 0xFFFF, 0x0023, 0x0000, 0x3FFC, 0x0004, 0x0084, 0x0048,
 		0x0030, 0x0000, 0x2080, 0x3FA0, 0x2000, 0x0000, 0x3180, 0x0A00,
@@ -75,7 +85,7 @@ int main(int argc, char **argv) {
 	};
 	badge.rom = rom;
 	badge.rom_len = sizeof(rom) / sizeof(word);
-	sim_sethertz(1000);
+	sim_sethertz(10);
 	core_reset(&cpu);
 	
 	// Show.
@@ -93,9 +103,9 @@ int main(int argc, char **argv) {
 				if (exuent) goto exit;
 				
 				// Sleep for a bit.
-				uint64_t sleep_time = next_time - micros();
+				int64_t sleep_time = next_time - micros();
 				if (sleep_time > 1000) sleep_time = 1000;
-				usleep(sleep_time);
+				if (sleep_time > 0) usleep(sleep_time);
 			} while(next_time > micros());
 		} else {
 			while (!running) {
@@ -114,6 +124,7 @@ int main(int argc, char **argv) {
 		
 		// Simulate.
 		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
+		sim_total_ticks += tick_count;
 		uint64_t too_fast = 0;
 		if (tick_count > sim_ticks) {
 			too_fast = (tick_count - sim_ticks) * (1000000 / target_hertz);
@@ -126,7 +137,8 @@ int main(int argc, char **argv) {
 		if (next_time < now - 4*sim_us_delay) next_time = now;
 		
 		// Measure speed.
-		measured_hertz = 0.123456;
+		int64_t delta = now - prev_time;
+		measured_hertz = 1000000.0 / (double) delta * (double) tick_count;
 		
 		// Show.
 		redraw(&cpu, &mem);
@@ -145,7 +157,7 @@ int main(int argc, char **argv) {
 void redraw(core *cpu, memmap *mem) {
 	draw_display(cpu, mem);
 	term_setxy(1, 19);
-	draw_stats(cpu, mem, target_hertz, measured_hertz);
+	draw_stats(cpu, mem, target_hertz, measured_hertz, sim_total_ticks);
 	term_setxy(1, 22);
 	draw_regs(cpu, mem);
 	fflush(stdout);
