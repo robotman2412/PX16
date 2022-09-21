@@ -24,6 +24,9 @@ static badge_mmap badge;
 
 static bool exuent = false;
 
+static double rolling_avg[4] = {0};
+static size_t rolling_idx = 0;
+
 uint64_t sim_total_ticks = 0;
 
 int main(int argc, char **argv) {
@@ -85,13 +88,14 @@ int main(int argc, char **argv) {
 	};
 	badge.rom = rom;
 	badge.rom_len = sizeof(rom) / sizeof(word);
-	sim_sethertz(10);
+	sim_sethertz(500);
 	core_reset(&cpu);
 	
 	// Show.
 	redraw(&cpu, &mem);
 	
 	uint64_t next_time = micros() + sim_us_delay;
+	int64_t  too_fast  = 0;
 	while (!exuent) {
 		if (running) {
 			do {
@@ -123,22 +127,23 @@ int main(int argc, char **argv) {
 		}
 		
 		// Simulate.
-		uint64_t tick_count = fast_ticks(&cpu, &mem, sim_ticks);
+		uint64_t tick_count = (sim_ticks > too_fast) ? fast_ticks(&cpu, &mem, sim_ticks - too_fast) : 0;
 		sim_total_ticks += tick_count;
-		uint64_t too_fast = 0;
-		if (tick_count > sim_ticks) {
-			too_fast = (tick_count - sim_ticks) * (1000000 / target_hertz);
-		}
+		too_fast = tick_count - sim_ticks + too_fast;
 		
 		// Set next wakeup time.
 		uint64_t now = micros();
 		uint64_t prev_time = next_time;
-		next_time += sim_us_delay + too_fast;
-		if (next_time < now - 4*sim_us_delay) next_time = now;
+		next_time += sim_us_delay;
 		
 		// Measure speed.
-		int64_t delta = now - prev_time;
+		int64_t delta = next_time - prev_time;
+		term_setxy(1, 30);
+		printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.3f\n", (double) delta / 1000.0);
+		printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld", tick_count);
 		measured_hertz = 1000000.0 / (double) delta * (double) tick_count;
+		
+		if (next_time < now - 4*sim_us_delay) next_time = now;
 		
 		// Show.
 		redraw(&cpu, &mem);
@@ -182,12 +187,12 @@ uint64_t micros() {
 // Sets the frequency in hertz to simulate at.
 void sim_sethertz(double hertz) {
 	target_hertz = hertz;
-	if (hertz < 100) {
+	if (hertz < 50) {
 		sim_ticks = 1;
 		sim_us_delay = 1000000.0 / hertz;
 	} else {
-		sim_us_delay = 10000;
-		sim_ticks    = hertz / 100.0;
+		sim_us_delay = 20000;
+		sim_ticks    = hertz / 50.0;
 		if (!sim_ticks) sim_ticks = 1;
 	}
 }

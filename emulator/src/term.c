@@ -214,13 +214,21 @@ void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, ui
 	}
 	
 	// Draw CU state.
+	term_setxy(30, old.y+1);
+	printf(ANSI_DEFAULT "State");
+	term_setxy(30, old.y+2);
+	for (int i = 0; i < n_cu_states; i++) {
+		if (cpu->state.array[i]) {
+			printf(ANSI_BLUE_FG "%s", cu_state_names[i]);
+			break;
+		}
+	}
+	
+	// Draw total tick count.
 	term_setxy(40, old.y+1);
 	printf(ANSI_DEFAULT "Ticks");
 	term_setxy(40, old.y+2);
-	printf(ANSI_BLUE_FG "%d", tick_count);
-	
-	// Draw total tick count.
-	
+	printf(ANSI_BLUE_FG "%ld", tick_count);
 	
 	last_shown = *cpu;
 	shown      = true;
