@@ -1,0 +1,3 @@
+[submodule "fpga/mch2022"]
+	path = fpga/mch2022
+	url = https://github.com/robotman2412/PX16-fpga-mch2022
