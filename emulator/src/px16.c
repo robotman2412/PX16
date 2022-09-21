@@ -17,6 +17,7 @@ const char *cu_state_names[n_cu_states] = {
 
 // Function for packing an instruction.
  __attribute__((pure))
+ __attribute__((hot))
 word pack_insn(instr insn) {
 	return (insn.y & 1) << 15
 		 | (insn.x & 7) << 12
@@ -27,6 +28,7 @@ word pack_insn(instr insn) {
 
 // Function for unpacking an instruction.
  __attribute__((pure))
+ __attribute__((hot))
 instr unpack_insn(word packed) {
 	return (instr) {
 		.y = (packed & 0x8000) >> 15,
@@ -39,6 +41,7 @@ instr unpack_insn(word packed) {
 
 
 // Decide the MOV condition for the given opcode.
+ __attribute__((hot))
 bool decide_cond(core *cpu, word opcode) {
 	opcode &= 017;
 	bool scout = cpu->PF & FLAG_SCOUT;
@@ -88,6 +91,7 @@ bool decide_cond(core *cpu, word opcode) {
 
 // Calculate the ALU result for the ACT stage.
 // Writes to PF unless notouchy is 1.
+ __attribute__((hot))
 word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 	// Determine some parameters.
 	bool  math1 = opcode >= OP_INC;
@@ -169,6 +173,7 @@ void core_pretick(core *cpu, memmap *mem) {
 
 // Simulates the rising edge followed by the falling edge.
 // Chenges register and/or memory states.
+ __attribute__((hot))
 void core_posttick(core *cpu, memmap *mem) {}
 
 
@@ -191,6 +196,7 @@ void core_ticks(core *cpu, memmap *mem, lword cycles) {
 
 // Simulates a full instruction instead of a number of cycles.
 // Returns the number of cycles the instruction takes in reality.
+ __attribute__((hot))
 lword fast_tick(core *cpu, memmap *mem) {
 	lword took = 0;
 	// If we're on boot, finish that up.
@@ -328,10 +334,17 @@ lword fast_ticks(core *cpu, memmap *mem, lword cycles) {
 // Simulates as many cycles as possible until timeout is reached.
 // Returns the real number of simulated cycles.
 lword warp_ticks(core *cpu, memmap *mem, uint64_t timeout) {
+	// Automatic calibration to get the best out of warp speed.
+	static int calib = 0;
 	lword real = 0;
-	do {
+	for (int i = 0; i < 10000 + calib; i++) {
 		real += fast_tick(cpu, mem);
-	} while (micros() < timeout);
+	}
+	if (micros() < timeout - 250 && calib < 100000000) {
+		calib += 5000;
+	} else if (micros() > timeout + 250 && calib >= 1000) {
+		calib -= 1250;
+	}
 	return real;
 }
 

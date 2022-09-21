@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
 		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.3f\n", (double) delta / 1000.0);
 		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld", tick_count);
 		
-		if (next_time < now - 4*sim_us_delay) next_time = now;
+		if (warp_speed || next_time < now - 4*sim_us_delay) next_time = now;
 		
 		// Show.
 		redraw(&cpu, &mem);

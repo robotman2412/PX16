@@ -225,14 +225,14 @@ extern const char *cu_state_names[n_cu_states];
 void core_reset(core *cpu);
 
 // Simulates one full clock cycle of the core.
-void core_tick(core *cpu, memmap *mem);
+void core_tick(core *cpu, memmap *mem) __attribute__((hot));
 
 // Simulates exactly cycles full clock cycles of the core.
 void core_ticks(core *cpu, memmap *mem, lword cycles);
 
 // Simulates a full instruction instead of a number of cycles.
 // Returns the number of cycles the instruction takes in reality.
-lword fast_tick(core *cpu, memmap *mem);
+lword fast_tick(core *cpu, memmap *mem) __attribute__((hot));
 
 // Simulates at least cycles full clock cycles worth of instructions.
 // Uses fast_tick internally, which makes this usually take a cycle or two more.
