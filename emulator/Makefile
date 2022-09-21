@@ -21,14 +21,14 @@ debug: ./build/debug.o
 	$(CC) -o $@ $^
 
 ./build/%.o: ./src/% $(HEADERS)
-	mkdir -p $(shell dirname $@)
+	@mkdir -p $(shell dirname $@)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 ./build/debug.o: $(OBJECTS_DEBUG)
 	$(CC) -o $@ $^
 
 ./build/%.debug.o: ./src/% $(HEADERS)
-	mkdir -p $(shell dirname $@)
+	@mkdir -p $(shell dirname $@)
 	$(CC) -c -o $@ $< $(CFLAGS_DEBUG)
 
 run: ./pxe
