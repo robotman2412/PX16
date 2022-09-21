@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -230,6 +231,11 @@ void handle_term_input(char c) {
 	} else if (c == 'w') {
 		// Warp speed toggle.
 		warp_speed = !warp_speed;
+		if (warp_speed) {
+			setpriority(PRIO_PROCESS, 0, PRIO_MAX);
+		} else {
+			setpriority(PRIO_PROCESS, 0, 0);
+		}
 		running = true;
 	} else if (c == 's') {
 		// Step command.
