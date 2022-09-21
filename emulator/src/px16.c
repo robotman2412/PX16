@@ -1,5 +1,6 @@
 
 #include "px16.h"
+#include "main.h"
 #include <string.h>
 
 // Describes CU stages.
@@ -154,9 +155,10 @@ void core_pretick(core *cpu, memmap *mem) {
 	cpu->par_bus_a = (run.a == 7) ? cpu->imm0 : cpu->regfile[run.a];
 	cpu->par_bus_a = (run.b == 7) ? cpu->imm1 : cpu->regfile[run.b];
 	
-	// TODO: Set ALU part.
+	// Set ALU part.
+	word ret_bus = alu_act(cpu, cpu->current.o, cpu->par_bus_a, cpu->par_bus_b, true);
 	
-	// CRACK addr bus.
+	// Calculate addr bus.
 	
 	// Read (notouchy) memory.
 	bool read_mem = false;
@@ -262,6 +264,9 @@ lword fast_tick(core *cpu, memmap *mem) {
 		took ++;
 		// Check for LEA.
 		if (run.o >= OFFS_LEA) {
+			if (decide_cond(cpu, run.o)) {
+				cpu->regfile[run.a] = cpu->AR;
+			}
 			goto end;
 		}
 	}
@@ -271,12 +276,14 @@ lword fast_tick(core *cpu, memmap *mem) {
 		word a = run.a == REG_IMM ? cpu->imm0 : cpu->regfile[run.a];
 		word b = run.b == REG_IMM ? cpu->imm1 : cpu->regfile[run.b];
 		word value = alu_act(cpu, run.o, a, b, false);
-		if (run.a == REG_IMM) {
-			// Write to memory.
-			mem->mem_write(cpu, cpu->AR, value, mem->mem_ctx);
-		} else {
-			// Write to register.
-			cpu->regfile[run.a] = value;
+		if ((run.o & ~OFFS_CC & ~OFFS_MATH1) != OP_CMP) {
+			if (run.a == REG_IMM) {
+				// Write to memory.
+				mem->mem_write(cpu, cpu->AR, value, mem->mem_ctx);
+			} else {
+				// Write to register.
+				cpu->regfile[run.a] = value;
+			}
 		}
 	} else {
 		// MOV instructions.
@@ -301,6 +308,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 		cpu->ST ++;
 		took ++;
 	}
+	// TODO: Interrupt handling.
 	end:
 	if (mem->post_tick) mem->post_tick(cpu, mem->tick_ctx);
 	return took;
@@ -314,6 +322,16 @@ lword fast_ticks(core *cpu, memmap *mem, lword cycles) {
 	do {
 		real += fast_tick(cpu, mem);
 	} while (real < cycles);
+	return real;
+}
+
+// Simulates as many cycles as possible until timeout is reached.
+// Returns the real number of simulated cycles.
+lword warp_ticks(core *cpu, memmap *mem, uint64_t timeout) {
+	lword real = 0;
+	do {
+		real += fast_tick(cpu, mem);
+	} while (micros() < timeout);
 	return real;
 }
 

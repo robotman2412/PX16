@@ -16,7 +16,6 @@ static double   target_hertz;
 static uint64_t sim_us_delay;
 static uint64_t sim_ticks;
 static bool     running;
-static uint64_t step;
 
 static core cpu;
 static memmap mem;
@@ -26,6 +25,7 @@ static bool exuent = false;
 
 static double rolling_avg[4] = {0};
 static size_t rolling_idx = 0;
+static bool   warp_speed  = false;
 
 uint64_t sim_total_ticks = 0;
 
@@ -88,7 +88,10 @@ int main(int argc, char **argv) {
 	};
 	badge.rom = rom;
 	badge.rom_len = sizeof(rom) / sizeof(word);
-	sim_sethertz(500);
+	if (argc > 1) {
+		badge_load_rom(&badge, argv[1]);
+	}
+	sim_sethertz(100);
 	core_reset(&cpu);
 	
 	// Show.
@@ -112,6 +115,7 @@ int main(int argc, char **argv) {
 				if (sleep_time > 0) usleep(sleep_time);
 			} while(next_time > micros());
 		} else {
+			too_fast = 0;
 			while (!running) {
 				// Check term input.
 				int c;
@@ -127,9 +131,16 @@ int main(int argc, char **argv) {
 		}
 		
 		// Simulate.
-		uint64_t tick_count = (sim_ticks > too_fast) ? fast_ticks(&cpu, &mem, sim_ticks - too_fast) : 0;
+		uint64_t tick_count;
+		if (warp_speed) {
+			tick_count = warp_ticks(&cpu, &mem, micros() + 20000);
+		} else if (sim_ticks > too_fast) {
+			tick_count = fast_ticks(&cpu, &mem, sim_ticks - too_fast);
+		} else {
+			tick_count = 0;
+		}
 		sim_total_ticks += tick_count;
-		too_fast = tick_count - sim_ticks + too_fast;
+		too_fast = warp_speed ? 0 : tick_count - sim_ticks + too_fast;
 		
 		// Set next wakeup time.
 		uint64_t now = micros();
@@ -138,10 +149,10 @@ int main(int argc, char **argv) {
 		
 		// Measure speed.
 		int64_t delta = next_time - prev_time;
-		term_setxy(1, 30);
-		printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.3f\n", (double) delta / 1000.0);
-		printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld", tick_count);
 		measured_hertz = 1000000.0 / (double) delta * (double) tick_count;
+		// term_setxy(1, 30);
+		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.3f\n", (double) delta / 1000.0);
+		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld", tick_count);
 		
 		if (next_time < now - 4*sim_us_delay) next_time = now;
 		
@@ -162,7 +173,7 @@ int main(int argc, char **argv) {
 void redraw(core *cpu, memmap *mem) {
 	draw_display(cpu, mem);
 	term_setxy(1, 19);
-	draw_stats(cpu, mem, target_hertz, measured_hertz, sim_total_ticks);
+	draw_stats(cpu, mem, warp_speed ? -1 : target_hertz, measured_hertz, sim_total_ticks);
 	term_setxy(1, 22);
 	draw_regs(cpu, mem);
 	fflush(stdout);
@@ -216,10 +227,13 @@ void handle_term_input(char c) {
 	if (c == ' ' || c == 'p') {
 		// Play / pause command.
 		running = !running;
-		step    = 0;
+	} else if (c == 'w') {
+		// Warp speed toggle.
+		warp_speed = !warp_speed;
+		running = true;
 	} else if (c == 's') {
 		// Step command.
-		fast_tick(&cpu, &mem);
+		sim_total_ticks += fast_tick(&cpu, &mem);
 		redraw(&cpu, &mem);
 	} else if (c == 'q') {
 		// Quit command.

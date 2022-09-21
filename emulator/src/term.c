@@ -6,7 +6,6 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 /* ======== General terminal utilities ======== */
 
@@ -196,7 +195,7 @@ void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, ui
 	fputs(ANSI_CLRLN "\n" ANSI_CLRLN, stdout);
 	
 	// Draw freq.
-	if (isinf(target_hz)) {
+	if (target_hz < 0) {
 		char m[10];
 		desc_speed(measured_hz, m);
 		term_setxy(6, old.y+1);

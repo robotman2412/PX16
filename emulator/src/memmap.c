@@ -1,6 +1,7 @@
 
 #include "memmap.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 // Creates the memory map for EL BADGE.
 void badge_mmap_create(badge_mmap *mmap, memmap *mem) {
@@ -29,7 +30,27 @@ void badge_mmap_destroy(badge_mmap *mmap) {
 
 // Loads a binary into ROM for EL BADGE.
 void badge_load_rom(badge_mmap *mmap, char *filename) {
+	FILE *fd = fopen(filename, "rb");
+	if (!fd) return;
 	
+	fseek(fd, 0, SEEK_END);
+	long len = ftell(fd);
+	if (len & 1) {
+		fclose(fd);
+		return;
+	}
+	
+	fseek(fd, 0, SEEK_SET);
+	word *rom = malloc(len);
+	for (word i = 0; i < len / 2; i++) {
+		uint8_t tmp[2];
+		fread(tmp, 1, 2, fd);
+		rom[i] = tmp[0] | (tmp[1] << 8);
+	}
+	mmap->rom     = rom;
+	mmap->rom_len = len / 2;
+	
+	fclose(fd);
 }
 
 

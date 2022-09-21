@@ -239,4 +239,8 @@ lword fast_tick(core *cpu, memmap *mem);
 // Returns the real number of simulated cycles.
 lword fast_ticks(core *cpu, memmap *mem, lword cycles);
 
+// Simulates as many cycles as possible until timeout is reached.
+// Returns the real number of simulated cycles.
+lword warp_ticks(core *cpu, memmap *mem, uint64_t timeout);
+
 #endif //PX16_H
