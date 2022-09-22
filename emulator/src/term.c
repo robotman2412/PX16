@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 /* ======== General terminal utilities ======== */
 
@@ -21,31 +22,56 @@ void term_setxy(uint32_t x, uint32_t y) {
 
 // Gets the terminal's cursor position.
 pos term_getpos() {
+	uint64_t timeout = micros() + 100000;
+	
 	// Query the position.
 	int flags = fcntl(0, F_GETFL, 0);
 	fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
 	printf("\033[6n");
-	pos res;
+	fflush(stdout);
+	
+	// Await the ESC char.
+	pos res = {0, 0};
 	int c;
-	while (1) {
+	while (micros() < timeout) {
 		c = fgetc(stdin);
-		if (c == '\033') break;
-		else {
+		if (c == '\033') {
+			break;
+		} else if (c != EOF) {
 			handle_term_input(c);
 		}
 	}
-	scanf("[%d;%dR", &res.y, &res.x);
+	
+	// Await the [ char.
+	while ((c = fgetc(stdin)) == EOF && micros() < timeout);
+	if (c != '[') goto error;
+	
+	// Scan for position report.
+	scanf("%d;%dR", &res.y, &res.x);
 	fcntl(0, F_SETFL, flags);
 	return res;
+	
+	// Not good.
+	error:
+	fcntl(0, F_SETFL, flags);
+	return (pos) {-1, -1};
 }
 
 // Gets the terminal's size.
 pos term_getsize() {
-	pos orig = term_getpos();
-	term_setxy(65535, 65535);
-	pos size = term_getpos();
-	term_setpos(orig);
-	return size;
+	static pos cache;
+	static uint64_t cacheTime = 0;
+	
+	if (secs() != cacheTime) {
+		pos orig = term_getpos();
+		if (orig.x < 0) return cache;
+		term_setxy(65535, 65535);
+		pos size = term_getpos();
+		if (size.x < 0) return cache;
+		term_setpos(orig);
+		return size;
+	}
+	return cache;
 }
 
 /* ======== Text descriptions ======== */

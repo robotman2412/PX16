@@ -234,7 +234,8 @@ lword fast_tick(core *cpu, memmap *mem) {
 		cpu->imm1 = mem->mem_read(cpu, cpu->PC++, false, mem->mem_ctx);
 		took ++;
 	}
-	bool is_jsr = run.o == (OFFS_MOV | COND_JSR) || run.o == (OFFS_LEA | COND_JSR);
+	bool is_jsr  = run.o == (OFFS_MOV | COND_JSR) || run.o == (OFFS_LEA | COND_JSR);
+	bool is_b_st = run.b == REG_ST;
 	// Check for push stage.
 	if (is_jsr || (!run.y && run.x == ADDR_MEM && run.a == REG_ST)) {
 		cpu->ST --;
@@ -310,7 +311,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	}
 	took ++;
 	// Check for pop.
-	if (run.y && run.x == ADDR_MEM && run.b == REG_ST) {
+	if (run.y && run.x == ADDR_MEM && is_b_st) {
 		cpu->ST ++;
 		took ++;
 	}

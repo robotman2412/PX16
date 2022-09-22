@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		badge_load_rom(&badge, argv[1]);
 	}
-	sim_sethertz(100);
+	sim_sethertz(100000);
 	core_reset(&cpu);
 	
 	// Show.
@@ -127,6 +127,7 @@ int main(int argc, char **argv) {
 				
 				// Sleep for a bit.
 				usleep(10000);
+				redraw(&cpu, &mem);
 			}
 			next_time = micros() + sim_us_delay;
 		}
@@ -180,6 +181,13 @@ void redraw(core *cpu, memmap *mem) {
 	fflush(stdout);
 }
 
+
+// Return unix time in seconds.
+uint64_t secs() {
+	struct timespec now;
+	timespec_get(&now, TIME_UTC);
+	return now.tv_sec;
+}
 
 // Return unix time in millisecods.
 uint64_t millis() {
@@ -240,9 +248,12 @@ void handle_term_input(char c) {
 	} else if (c == 's') {
 		// Step command.
 		sim_total_ticks += fast_tick(&cpu, &mem);
-		redraw(&cpu, &mem);
+		running = false;
+		warp_speed = false;
 	} else if (c == 'q') {
 		// Quit command.
+		term_setxy(1, 1);
+		printf(ANSI_DEFAULT "Quit.");
 		exuent = true;
 	}
 }

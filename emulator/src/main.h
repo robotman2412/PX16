@@ -7,6 +7,8 @@
 
 extern uint64_t sim_total_ticks;
 
+// Return unix time in seconds.
+uint64_t secs();
 // Return unix time in millisecods.
 uint64_t millis();
 // Return unix time in microseconds.
