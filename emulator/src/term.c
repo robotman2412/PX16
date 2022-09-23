@@ -107,6 +107,8 @@ void desc_speed(double hertz, char *to) {
 
 // Draws the matrix display.
 void draw_display(core *cpu, memmap *mem) {
+	static word old_screen[32] = {1};
+	
 	const char on_col[]  = "\033[44;97m";
 	const char off_col[] = "\033[40;90m";
 	
@@ -116,6 +118,8 @@ void draw_display(core *cpu, memmap *mem) {
 	for (word i = 0; i < 32; i++) {
 		screen[i] = mem->mem_read(cpu, screen_addr + i, true, mem->mem_ctx);
 	}
+	
+	if (!memcmp(old_screen, screen, sizeof(old_screen))) return;
 	
 	// Make a little header bar.
 	pos old = term_getpos();
@@ -135,6 +139,7 @@ void draw_display(core *cpu, memmap *mem) {
 		}
 	}
 	fputc('\n', stdout);
+	memcpy(old_screen, screen, sizeof(old_screen));
 	
 	// Reset thel TTY.
 	fputs("\033[0m", stdout);

@@ -90,25 +90,25 @@ typedef uint32_t lword;
 typedef uint16_t word;
 
 typedef enum {
-	REG_R0,
-	REG_R1,
-	REG_R2,
-	REG_R3,
-	REG_ST,
-	REG_PF,
-	REG_PC,
-	REG_IMM,
+	PX_REG_R0,
+	PX_REG_R1,
+	PX_REG_R2,
+	PX_REG_R3,
+	PX_REG_ST,
+	PX_REG_PF,
+	PX_REG_PC,
+	PX_REG_IMM,
 } reg;
 
 typedef enum {
-	ADDR_R0,
-	ADDR_R1,
-	ADDR_R2,
-	ADDR_R3,
-	ADDR_ST,
-	ADDR_MEM,
-	ADDR_PC,
-	ADDR_IMM,
+	PX_ADDR_R0,
+	PX_ADDR_R1,
+	PX_ADDR_R2,
+	PX_ADDR_R3,
+	PX_ADDR_ST,
+	PX_ADDR_MEM,
+	PX_ADDR_PC,
+	PX_ADDR_IMM,
 } addrmode;
 
 struct s_memmap;

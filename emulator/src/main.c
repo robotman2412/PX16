@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		badge_load_rom(&badge, argv[1]);
 	}
-	sim_sethertz(100000);
+	sim_sethertz(1000000);
 	core_reset(&cpu);
 	
 	// Show.
@@ -236,6 +236,9 @@ void handle_term_input(char c) {
 	if (c == ' ' || c == 'p') {
 		// Play / pause command.
 		running = !running;
+	} else if (c == 'r') {
+		// Reset them CORE.
+		core_reset(&cpu);
 	} else if (c == 'w') {
 		// Warp speed toggle.
 		warp_speed = !warp_speed;

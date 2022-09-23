@@ -225,19 +225,19 @@ lword fast_tick(core *cpu, memmap *mem) {
 	took ++;
 	
 	// Check for IMM0.
-	if (run.a == REG_IMM) {
+	if (run.a == PX_REG_IMM) {
 		cpu->imm0 = mem->mem_read(cpu, cpu->PC++, false, mem->mem_ctx);
 		took ++;
 	}
 	// Check for IMM1.
-	if (run.b == REG_IMM) {
+	if (run.b == PX_REG_IMM) {
 		cpu->imm1 = mem->mem_read(cpu, cpu->PC++, false, mem->mem_ctx);
 		took ++;
 	}
 	bool is_jsr  = run.o == (OFFS_MOV | COND_JSR) || run.o == (OFFS_LEA | COND_JSR);
-	bool is_b_st = run.b == REG_ST;
+	bool is_b_st = run.b == PX_REG_ST;
 	// Check for push stage.
-	if (is_jsr || (!run.y && run.x == ADDR_MEM && run.a == REG_ST)) {
+	if (is_jsr || (!run.y && run.x == PX_ADDR_MEM && run.a == PX_REG_ST)) {
 		cpu->ST --;
 		took ++;
 	}
@@ -247,13 +247,13 @@ lword fast_tick(core *cpu, memmap *mem) {
 		took ++;
 	}
 	// Check for addr stage.
-	if (run.x != ADDR_IMM) {
+	if (run.x != PX_ADDR_IMM) {
 		// Determine register for memory access.
 		reg regno = run.y ? run.b : run.a;
-		word regval = regno != REG_IMM ? cpu->regfile[regno]
+		word regval = regno != PX_REG_IMM ? cpu->regfile[regno]
 					: (run.y ? cpu->imm1 : cpu->imm0);
 		// Determine address.
-		if (run.x == ADDR_MEM) {
+		if (run.x == PX_ADDR_MEM) {
 			cpu->AR = regval;
 		} else {
 			cpu->AR = regval + cpu->regfile[run.x];
@@ -262,10 +262,10 @@ lword fast_tick(core *cpu, memmap *mem) {
 		word data = mem->mem_read(cpu, cpu->AR, false, mem->mem_ctx);
 		// Write back to correct IMM register.
 		if (run.y) {
-			run.b = REG_IMM;
+			run.b = PX_REG_IMM;
 			cpu->imm1 = data;
 		} else {
-			run.a = REG_IMM;
+			run.a = PX_REG_IMM;
 			cpu->imm0 = data;
 		}
 		took ++;
@@ -280,11 +280,11 @@ lword fast_tick(core *cpu, memmap *mem) {
 	// Check for instruction type.
 	if (run.o <= (OP_SHR | OFFS_CC)) {
 		// Math instructions.
-		word a = run.a == REG_IMM ? cpu->imm0 : cpu->regfile[run.a];
-		word b = run.b == REG_IMM ? cpu->imm1 : cpu->regfile[run.b];
+		word a = run.a == PX_REG_IMM ? cpu->imm0 : cpu->regfile[run.a];
+		word b = run.b == PX_REG_IMM ? cpu->imm1 : cpu->regfile[run.b];
 		word value = alu_act(cpu, run.o, a, b, false);
 		if ((run.o & ~OFFS_CC & ~OFFS_MATH1) != OP_CMP) {
-			if (run.a == REG_IMM) {
+			if (run.a == PX_REG_IMM) {
 				// Write to memory.
 				mem->mem_write(cpu, cpu->AR, value, mem->mem_ctx);
 			} else {
@@ -295,12 +295,12 @@ lword fast_tick(core *cpu, memmap *mem) {
 	} else {
 		// MOV instructions.
 		if (decide_cond(cpu, run.o)) {
-			word value = run.b == REG_IMM ? cpu->imm1 : cpu->regfile[run.b];
+			word value = run.b == PX_REG_IMM ? cpu->imm1 : cpu->regfile[run.b];
 			// Check for carry extend condition.
 			if (run.o == (OP_MOV | COND_CX)) {
 				value = (value & 0x8000) ? 0xffff : 0x0000;
 			}
-			if (run.a == REG_IMM) {
+			if (run.a == PX_REG_IMM) {
 				// Write to memory.
 				mem->mem_write(cpu, cpu->AR, value, mem->mem_ctx);
 			} else {
@@ -311,7 +311,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	}
 	took ++;
 	// Check for pop.
-	if (run.y && run.x == ADDR_MEM && is_b_st) {
+	if (run.y && run.x == PX_ADDR_MEM && is_b_st) {
 		cpu->ST ++;
 		took ++;
 	}
