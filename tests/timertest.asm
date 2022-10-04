@@ -10,9 +10,8 @@ irqhandler:
 	// Acknowledge timer.
 	MOV [0xfffe], 0x0404
 	
-	// Print message.
-	MOV R0, timermsg
-	MOV.JSR PC, print
+	// Report IRQ handled.
+	OR  [0xffc0], 0x4000
 	
 	// Return from interrupt.
 	MOV PF, [ST]
@@ -28,13 +27,11 @@ entry:
 	AND R0, 0x0001
 	MOV.EQ PC, .skip
 	// Report findings.
-	MOV R0, wakemsg
-	MOV.JSR PC, print
+	OR  [0xffc0], 0x2000
 .skip:
 	
 	// Print message.
-	MOV R0, startmsg
-	MOV.JSR PC, print
+	OR  [0xffc0], 0x8000
 	
 	// Enable interrupts.
 	OR  PF, 0x0002
@@ -54,23 +51,3 @@ entry:
 	
 	// Idle forever.
 	DEC PC
-
-print:
-	MOV [ST], R1
-	MOV PC, .check
-.loop:
-	MOV R1, [R0]
-	MOV [0xfff6], R1
-	INC R0
-.check:
-	CMP1 [R0]
-	MOV.UGE PC, .loop
-	MOV R1, [ST]
-	MOV PC, [ST]
-
-startmsg:
-	.db "Starting timer test.\n", 0
-wakemsg:
-	.db "Woke from sleep.\n", 0
-timermsg:
-	.db "Timer fired!\n", 0

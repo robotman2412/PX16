@@ -18,6 +18,16 @@ struct s_badge_mmap {
 	// Must be at least 655536 words.
 	word *ram;
 	/* ==== Memory mapped I/O ==== */
+	// Timer mode.
+	bool  timer0_en, timer0_irq, timer0_nmi;
+	// Timer interrupt requests.
+	bool  timer0_trig;
+	// Timer 0 value.
+	lword timer0_value;
+	// Timer 0 intermediate register.
+	lword timer0_int;
+	// Timer 0 limit.
+	lword timer0_limit;
 };
 
 // Creates the memory map for EL BADGE.
@@ -31,5 +41,7 @@ void badge_load_rom(badge_mmap *mmap, char *filename);
 word badge_mmap_read(core *cpu, word address, bool notouchy, badge_mmap *ctx);
 // Write to EL BADGE.
 void badge_mmap_write(core *cpu, word address, word value, badge_mmap *ctx);
+// Post TICK (used for timer).
+void badge_mmap_posttick(core *cpu, badge_mmap *ctx, lword cycles);
 
 #endif //MEMMAP_H

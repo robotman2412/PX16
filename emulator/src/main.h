@@ -21,8 +21,6 @@ double sim_gethertz();
 // Gets the measured frequency in hertz.
 double sim_measurehertz();
 
-// Redraws the UI things.
-void redraw(core *cpu, memmap *mem);
 // Handles a single char of term input.
 void handle_term_input(char c);
 

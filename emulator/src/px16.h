@@ -134,7 +134,9 @@ struct s_memmap {
 	// Before core tick (i.e. before rising edge).
 	void (*pre_tick)(core *cpu, void *ctx);
 	// After core tick (i.e. after rising edge).
-	void (*post_tick)(core *cpu, void *ctx);
+	void (*post_tick)(core *cpu, void *ctx, lword cycles);
+	// The reset button press.
+	void (*reset)(core *cpu, void *ctx);
 };
 
 union s_core_cu {

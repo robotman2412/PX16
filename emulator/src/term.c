@@ -263,3 +263,23 @@ void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, ui
 	last_shown = *cpu;
 	shown      = true;
 }
+
+// Draws the badge mmio stuff.
+void draw_badge_mmio(core *cpu, memmap *mem, badge_mmap *badge) {
+	pos old  = term_getpos();
+	pos size = term_getsize();
+	term_setxy(1 + (size.x - 4) / 2, old.y);
+	fputs(ANSI_CLRLN ANSI_BOLD "MMIO", stdout);
+	
+	// Draw timer.
+	term_setxy(6, old.y + 1);
+	printf(
+		ANSI_DEFAULT "Timer: %s %c%c",
+		badge->timer0_en ? "On " : "Off",
+		badge->timer0_irq ? 'I' : '-',
+		badge->timer0_nmi ? 'N' : '-'
+	);
+	term_setxy(6, old.y + 2);
+	double diff = ((int64_t) badge->timer0_value - (int64_t) badge->timer0_limit) / 1000.0;
+	printf(ANSI_CLRLN ANSI_BLUE_FG "%08x / %08x (%.1lfms)", badge->timer0_value, badge->timer0_limit, diff);
+}

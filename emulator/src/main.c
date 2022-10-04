@@ -30,6 +30,9 @@ static bool   warp_speed  = false;
 
 uint64_t sim_total_ticks = 0;
 
+// Redraws the UI things.
+static void redraw();
+
 int main(int argc, char **argv) {
 	// Add the exit handler.
 	if (atexit(exithandler)) {
@@ -92,7 +95,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		badge_load_rom(&badge, argv[1]);
 	}
-	sim_sethertz(1000000);
+	sim_sethertz(10000);
 	core_reset(&cpu);
 	
 	// Show.
@@ -172,12 +175,13 @@ int main(int argc, char **argv) {
 
 
 // Redraws the UI things.
-void redraw(core *cpu, memmap *mem) {
-	draw_display(cpu, mem);
+void redraw() {
+	draw_display(&cpu, &mem);
 	term_setxy(1, 19);
-	draw_stats(cpu, mem, warp_speed ? -1 : target_hertz, measured_hertz, sim_total_ticks);
+	draw_stats(&cpu, &mem, warp_speed ? -1 : target_hertz, measured_hertz, sim_total_ticks);
 	term_setxy(1, 22);
-	draw_regs(cpu, mem);
+	draw_regs(&cpu, &mem);
+	draw_badge_mmio(&cpu, &mem, &badge);
 	fflush(stdout);
 }
 

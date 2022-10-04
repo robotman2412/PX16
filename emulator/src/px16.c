@@ -317,7 +317,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	}
 	// TODO: Interrupt handling.
 	end:
-	if (mem->post_tick) mem->post_tick(cpu, mem->tick_ctx);
+	if (mem->post_tick) mem->post_tick(cpu, mem->tick_ctx, took);
 	return took;
 }
 

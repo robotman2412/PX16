@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "px16.h"
+#include "memmap.h"
 
 #define ANSI_CLRLN   "\033[2K"
 #define ANSI_DEFAULT "\033[0m"
@@ -70,5 +71,7 @@ void draw_display(core *cpu, memmap *mem);
 void draw_regs(core *cpu, memmap *mem);
 // Draws some statistics;
 void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, uint64_t tick_count);
+// Draws the badge mmio stuff.
+void draw_badge_mmio(core *cpu, memmap *mem, badge_mmap *badge);
 
 #endif //TERM_H
