@@ -1,0 +1,23 @@
+
+Requirements for multicore:
+	- Alt core startup system
+	- Core detection
+	- Mutex hardware
+	- Memory sharing plan
+
+Nice-to-haves:
+	- Core affine MMIO copies
+	- Core affine RAM
+	- Inter-Processor interrupts
+	- Dual port RAM
+
+When all the nice to haves are included, the cores are linked by:
+	RAM (non-core affine part)
+	Inter-Processor interrupts
+	Mutex hardware
+
+Viability:
+	Dual port RAM chips are expensive, which means most likely dedicated circuitry.
+	Dual port ROM is basically not a thing, which means that ROM must be copied before use.
+	
+	Creating two copies of all MMIO will be expensive and time-consuming because combined MMIO might be more complex than the core.
