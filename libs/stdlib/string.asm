@@ -1,4 +1,22 @@
 
+	// Copy N (R2) bytes of SRC (R1) to DST (R0)
+memcpy:
+	DEC R2				// Initial length check.
+	MOV.CC PC, .skip
+	MOV [ST], R3		// R3 not modified when skipped.
+	
+.loop:
+	MOV R3, [R1+R2]		// Transfer memory.
+	MOV [R0+R2], R3
+	DEC R2				// Next and check combined.
+	MOV.CS PC, .loop
+	
+	MOV R3, [ST]		// Return.
+.skip:
+	MOV PC, [ST]
+
+
+
 	// Find string length for pointer in R0, returns length in R0.
 strlen:
 	MOV [ST], R1

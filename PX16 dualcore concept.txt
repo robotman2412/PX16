@@ -21,3 +21,5 @@ Viability:
 	Dual port ROM is basically not a thing, which means that ROM must be copied before use.
 	
 	Creating two copies of all MMIO will be expensive and time-consuming because combined MMIO might be more complex than the core.
+	
+	Correctly coded software should not be affected, despite OS changes.
