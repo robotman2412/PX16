@@ -141,7 +141,7 @@ memcmp:
 	MOV PC, [ST]
 	
 .skip:
-	XOR R0, R0			// Return zero.
+	XOR R0, R0				// Return zero.
 	MOV PC, [ST]
 
 
