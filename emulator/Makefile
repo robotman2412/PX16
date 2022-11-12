@@ -2,8 +2,8 @@
 .SUFFIXES:
 
 CC            = gcc
-CFLAGS        = -Isrc
-CFLAGS_DEBUG  = -Isrc -ggdb -DDEBUG
+CFLAGS        = -Isrc -O3
+CFLAGS_DEBUG  = -Isrc -O3 -ggdb -DDEBUG
 HEADERS       = $(shell find ./src -type f -name "*.h")
 SOURCES       = $(shell find ./src -type f -name "*.c")
 OBJECTS       = $(shell find ./src -type f -name "*.c" -printf '%p.o\n' | sed -e 's/src/build/')
@@ -20,14 +20,14 @@ debug: ./build/debug.o
 ./build/main.o: $(OBJECTS)
 	$(CC) -o $@ $^
 
-./build/%.o: ./src/% $(HEADERS)
+./build/%.o: ./src/% $(HEADERS) Makefile
 	@mkdir -p $(shell dirname $@)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 ./build/debug.o: $(OBJECTS_DEBUG)
 	$(CC) -o $@ $^
 
-./build/%.debug.o: ./src/% $(HEADERS)
+./build/%.debug.o: ./src/% $(HEADERS) Makefile
 	@mkdir -p $(shell dirname $@)
 	$(CC) -c -o $@ $< $(CFLAGS_DEBUG)
 

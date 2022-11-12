@@ -336,15 +336,15 @@ lword fast_ticks(core *cpu, memmap *mem, lword cycles) {
 // Returns the real number of simulated cycles.
 lword warp_ticks(core *cpu, memmap *mem, uint64_t timeout) {
 	// Automatic calibration to get the best out of warp speed.
-	static int calib = 100000;
+	static int calib = 1000000;
 	lword real = 0;
 	for (int i = 0; i < 10000 + calib; i++) {
 		real += fast_tick(cpu, mem);
 	}
 	if (micros() < timeout - 250 && calib < 100000000) {
-		calib += 5000;
+		calib += 10000;
 	} else if (micros() > timeout + 250 && calib >= 1000) {
-		calib -= 1250;
+		calib -= 2500;
 	}
 	return real;
 }

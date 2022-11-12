@@ -122,7 +122,7 @@ void draw_display(core *cpu, memmap *mem) {
 	if (!memcmp(old_screen, screen, sizeof(old_screen))) return;
 	
 	// Make a little header bar.
-	pos old = term_getpos();
+	// pos old = term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 14) / 2, 1);
 	fputs(ANSI_CLRLN ANSI_BOLD "Matrix Display", stdout);
@@ -143,18 +143,18 @@ void draw_display(core *cpu, memmap *mem) {
 	
 	// Reset thel TTY.
 	fputs("\033[0m", stdout);
-	pos cur = term_getpos();
+	// pos cur = term_getpos();
 	// if (old.y < cur.y) {
 	// 	old.y = cur.y;
 	// }
-	term_setpos(old);
+	// term_setpos(old);
 }
 
 // Draws the registers.
 void draw_regs(core *cpu, memmap *mem) {
 	
 	// Make a little header bar.
-	pos old = term_getpos();
+	pos old = {0, 22}; //term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 9) / 2, old.y);
 	fputs(ANSI_CLRLN ANSI_DEFAULT ANSI_BOLD "Registers", stdout);
@@ -216,10 +216,11 @@ void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, ui
 	static bool shown = false;
 	
 	// Make a little header bar.
-	pos old = term_getpos();
+	pos old = {0, 19};
+	//term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 10) / 2, old.y);
-	fputs(ANSI_CLRLN ANSI_BOLD "Statistics", stdout);
+	fputs(ANSI_CLRLN ANSI_DEFAULT ANSI_BOLD "Statistics", stdout);
 	
 	// Clear lines.
 	term_setxy(1, old.y+1);
@@ -266,7 +267,7 @@ void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, ui
 
 // Draws the badge mmio stuff.
 void draw_badge_mmio(core *cpu, memmap *mem, badge_mmap *badge) {
-	pos old  = term_getpos();
+	pos old  = {0, 27}; //term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 4) / 2, old.y);
 	fputs(ANSI_CLRLN ANSI_BOLD "MMIO", stdout);

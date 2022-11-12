@@ -15,7 +15,7 @@
 static double   measured_hertz;
 static double   target_hertz;
 static uint64_t sim_us_delay;
-static uint64_t sim_ticks;
+static int64_t  sim_ticks;
 static bool     running;
 
 static core cpu;
@@ -24,7 +24,8 @@ static badge_mmap badge;
 
 static bool exuent = false;
 
-static double rolling_avg[4] = {0};
+#define N_ROLLING_AVG 8
+static double rolling_avg[N_ROLLING_AVG] = {0};
 static size_t rolling_idx = 0;
 static bool   warp_speed  = false;
 
@@ -95,13 +96,14 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		badge_load_rom(&badge, argv[1]);
 	}
-	sim_sethertz(10000);
+	sim_sethertz(100000);
 	core_reset(&cpu);
 	
 	// Show.
-	redraw(&cpu, &mem);
+	redraw();
 	
 	uint64_t next_time = micros() + sim_us_delay;
+	uint64_t prev_time = micros();
 	int64_t  too_fast  = 0;
 	while (!exuent) {
 		if (running) {
@@ -149,20 +151,24 @@ int main(int argc, char **argv) {
 		
 		// Set next wakeup time.
 		uint64_t now = micros();
-		uint64_t prev_time = next_time;
 		next_time += sim_us_delay;
 		
 		// Measure speed.
-		int64_t delta = next_time - prev_time;
-		measured_hertz = 1000000.0 / (double) delta * (double) tick_count;
+		int64_t delta = now - prev_time;
+		double next_hertz = 1000000.0 / (double) delta * (double) tick_count;
+		measured_hertz -= rolling_avg[rolling_idx] / N_ROLLING_AVG;
+		measured_hertz += next_hertz / N_ROLLING_AVG;
+		rolling_avg[rolling_idx] = next_hertz;
+		rolling_idx = (rolling_idx + 1) % N_ROLLING_AVG;
 		// term_setxy(1, 30);
-		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.3f\n", (double) delta / 1000.0);
-		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld", tick_count);
+		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.1f / %.1f\n", (double) delta / 1000.0, (double) sim_us_delay / 1000.0);
+		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld / %ld", tick_count, sim_ticks);
 		
+		prev_time = now;
 		if (warp_speed || next_time < now - 4*sim_us_delay) next_time = now;
 		
 		// Show.
-		redraw(&cpu, &mem);
+		redraw();
 	}
 	
 	exit:
@@ -215,8 +221,8 @@ void sim_sethertz(double hertz) {
 		sim_ticks = 1;
 		sim_us_delay = 1000000.0 / hertz;
 	} else {
-		sim_us_delay = 20000;
-		sim_ticks    = hertz / 50.0;
+		sim_us_delay = 200000;
+		sim_ticks    = hertz / 5.0;
 		if (!sim_ticks) sim_ticks = 1;
 	}
 }
