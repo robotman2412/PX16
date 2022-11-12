@@ -66,7 +66,7 @@ void badge_load_rom(badge_mmap *mmap, char *filename) {
 
 // Read from EL BADGE.
 word badge_mmap_read(core *cpu, word address, bool notouchy, badge_mmap *mmap) {
-	if (address >= 0xffc0) {
+	if (address >= 0xffe0) {
 		if (address == 0xffff) {
 			// MMIO length.
 			return 0x0040;
@@ -97,7 +97,7 @@ word badge_mmap_read(core *cpu, word address, bool notouchy, badge_mmap *mmap) {
 
 // Write to EL BADGE.
 void badge_mmap_write(core *cpu, word address, word value, badge_mmap *mmap) {
-	if (address >= 0xffc0) {
+	if (address >= 0xffe0) {
 		// Check MMIO things.
 		
 		if (address == 0xfffe) {
