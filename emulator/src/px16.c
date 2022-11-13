@@ -167,7 +167,7 @@ void core_pretick(core *cpu, memmap *mem) {
 	// Read (notouchy) memory.
 	bool read_mem = false;
 	if (read_mem) {
-		cpu->data_bus = mem->mem_read(cpu, cpu->addr_bus, true, mem->mem_ctx);
+		cpu->data_bus = mem->mem_read(cpu, mem, cpu->addr_bus, true, mem->mem_ctx);
 	}
 }
 
@@ -201,7 +201,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	lword took = 0;
 	// If we're on boot, finish that up.
 	if (cpu->state.boot_0) {
-		cpu->PC = mem->mem_read(cpu, 2, false, mem->mem_ctx);
+		cpu->PC = mem->mem_read(cpu, mem, 2, false, mem->mem_ctx);
 		took = 2;
 		cpu->state.boot_0 = 0;
 		cpu->state.load_0 = 1;
@@ -218,24 +218,29 @@ lword fast_tick(core *cpu, memmap *mem) {
 	// 	return took;
 	// }
 	
-	if (mem->pre_tick) mem->pre_tick(cpu, mem->tick_ctx);
+	if (mem->pre_tick) mem->pre_tick(cpu, mem, mem->tick_ctx);
 	// Now we get to the fun stuff.
 	// Unpack the instruction to run.
-	instr run = unpack_insn(mem->mem_read(cpu, cpu->PC++, false, mem->mem_ctx));
+	instr run = unpack_insn(mem->mem_read(cpu, mem, cpu->PC++, false, mem->mem_ctx));
 	took ++;
+	
+	// Update the interrupt helper bit.
+	cpu->intr_helper = cpu->PF & FLAG_IPROG;
 	
 	// Check for IMM0.
 	if (run.a == PX_REG_IMM) {
-		cpu->imm0 = mem->mem_read(cpu, cpu->PC++, false, mem->mem_ctx);
+		cpu->imm0 = mem->mem_read(cpu, mem, cpu->PC++, false, mem->mem_ctx);
 		took ++;
 	}
 	// Check for IMM1.
 	if (run.b == PX_REG_IMM) {
-		cpu->imm1 = mem->mem_read(cpu, cpu->PC++, false, mem->mem_ctx);
+		cpu->imm1 = mem->mem_read(cpu, mem, cpu->PC++, false, mem->mem_ctx);
 		took ++;
 	}
+	
 	bool is_jsr  = run.o == (OFFS_MOV | COND_JSR) || run.o == (OFFS_LEA | COND_JSR);
 	bool is_b_st = run.b == PX_REG_ST;
+	
 	// Check for push stage.
 	if (is_jsr || (!run.y && run.x == PX_ADDR_MEM && run.a == PX_REG_ST)) {
 		cpu->ST --;
@@ -243,7 +248,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	}
 	// Check for jsr stage.
 	if (is_jsr) {
-		mem->mem_write(cpu, cpu->ST, cpu->PC, mem->mem_ctx);
+		mem->mem_write(cpu, mem, cpu->ST, cpu->PC, mem->mem_ctx);
 		took ++;
 	}
 	// Check for addr stage.
@@ -259,7 +264,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 			cpu->AR = regval + cpu->regfile[run.x];
 		}
 		// Read from memory.
-		word data = mem->mem_read(cpu, cpu->AR, false, mem->mem_ctx);
+		word data = mem->mem_read(cpu, mem, cpu->AR, false, mem->mem_ctx);
 		// Write back to correct IMM register.
 		if (run.y) {
 			run.b = PX_REG_IMM;
@@ -277,6 +282,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 			goto end;
 		}
 	}
+	
 	// Check for instruction type.
 	if (run.o <= (OP_SHR | OFFS_CC)) {
 		// Math instructions.
@@ -286,7 +292,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 		if ((run.o & ~OFFS_CC & ~OFFS_MATH1) != OP_CMP) {
 			if (run.a == PX_REG_IMM) {
 				// Write to memory.
-				mem->mem_write(cpu, cpu->AR, value, mem->mem_ctx);
+				mem->mem_write(cpu, mem, cpu->AR, value, mem->mem_ctx);
 			} else {
 				// Write to register.
 				cpu->regfile[run.a] = value;
@@ -302,7 +308,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 			}
 			if (run.a == PX_REG_IMM) {
 				// Write to memory.
-				mem->mem_write(cpu, cpu->AR, value, mem->mem_ctx);
+				mem->mem_write(cpu, mem, cpu->AR, value, mem->mem_ctx);
 			} else {
 				// Write to register.
 				cpu->regfile[run.a] = value;
@@ -310,14 +316,36 @@ lword fast_tick(core *cpu, memmap *mem) {
 		}
 	}
 	took ++;
+	
 	// Check for pop.
 	if (run.y && run.x == PX_ADDR_MEM && is_b_st) {
 		cpu->ST ++;
 		took ++;
 	}
-	// TODO: Interrupt handling.
+	
+	bool is_nmi, is_isr, is_isr_allowed;
 	end:
-	if (mem->post_tick) mem->post_tick(cpu, mem->tick_ctx, took);
+	// Interrupt handling.
+	is_isr_allowed = !cpu->intr_helper && !(cpu->PF & FLAG_IPROG);
+	is_nmi = mem->nmi;
+	is_isr = (mem->nmi && (cpu->PF & FLAG_NMI)) || (mem->irq && (cpu->PF & FLAG_IRQ));
+	if (is_isr && is_isr_allowed) {
+		// Intr 0: Pre-decrement ST.
+		cpu->ST --;
+		// Intr 1: Push PC to stack.
+		mem->mem_write(cpu, mem, cpu->ST, cpu->PC, mem->mem_ctx);
+		// Intr 2: Pre-decrement ST.
+		cpu->ST --;
+		// Intr 3: Push PF to stack and set interrupt in progress flag
+		mem->mem_write(cpu, mem, cpu->ST, cpu->PF, mem->mem_ctx);
+		cpu->PF |= FLAG_IPROG;
+		// Intr 4: Load interrupt vector.
+		cpu->PC = mem->mem_read(cpu, mem, is_nmi ? 1 : 0, false, mem->mem_ctx);
+		
+		took += 5;
+	}
+	
+	if (mem->post_tick) mem->post_tick(cpu, mem, mem->tick_ctx, took);
 	return took;
 }
 

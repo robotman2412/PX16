@@ -11,6 +11,12 @@
 
 	// IRQ Handler.
 irqv:
+	// Update timer status.
+	MOV [PC~timerstatus], 1
+	
+	// Acknowledge timer.
+	MOV [0xfffe], 0x0400
+	
 	MOV PF, [ST]
 	MOV PC, [ST]
 
@@ -36,7 +42,7 @@ entry:
 .loop:
 	MOV R0, R1
 	LEA.JSR PC, [PC~disp_img]
-	LEA.JSR PC, [PC~wait]
+	LEA.JSR PC, [PC~waittimer]
 	ADD R1, 32
 	CMP R1, R2
 	LEA.ULE PC, [PC~.loop]
@@ -46,9 +52,39 @@ entry:
 
 
 
+	// Waits using the timers.
+waittimer: // region
+	MOV [ST], R0
+	
+	// Set timer waiting device.
+	MOV [PC~timerstatus], 0
+	
+	// Set timer value.
+	MOV R0, 0xffff
+	MOV [0xfffa], R0
+	MOV [0xfffb], R0
+	// Set timer limit.
+	MOV [0xfff8], 0xa120
+	MOV [0xfff9], 0x0007
+	// Start timer.
+	MOV [0xfffe], 0x0505
+	
+	// Enable interrupts.
+	OR  PF, 0x0002
+	
+	// Wait until timerstatus is nonzero.
+.loop:
+	CMP1 [PC~timerstatus]
+	LEA.ULT PC, [PC~.loop]
+	
+	// Return.
+	MOV PC, [ST]
+	// endregion
+
+
 
 	// Waits for a bit.
-wait: // region
+waitloop: // region
 	MOV [ST], R0
 	MOV R0, 0x1000
 .loop:
@@ -869,5 +905,7 @@ img_logo:
 
 // region bss
 	.section ".bss"
+timerstatus:
+	.zero 1
 // endregion bss
 

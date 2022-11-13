@@ -14,6 +14,14 @@
 #define FLAG_SCOUT 0x8000
 // Zero flag mask.
 #define FLAG_ZERO  0x2000
+// Interrupt in progress flag.
+#define FLAG_IPROG 0x0008
+// Interrupt in progress flag.
+#define FLAG_ISW   0x0004
+// IRQ enable flag.
+#define FLAG_IRQ   0x0002
+// NMI enable flag.
+#define FLAG_NMI   0x0001
 
 // Unsigned less than.
 #define COND_ULT  000
@@ -122,21 +130,28 @@ typedef union  s_core_cu core_cu;
 typedef struct s_instr instr;
 
 struct s_memmap {
+	// Whether an IRQ is being asserted.
+	bool irq;
+	// Whether an NMI is being asserted.
+	bool nmi;
+	
 	// Context to memory callbacks.
 	void *mem_ctx;
 	// Read callback.
 	// May not do clock cycle actions if notouchy is false.
-	word (*mem_read)(core *cpu, word address, bool notouchy, void *ctx);
+	word (*mem_read)(core *cpu, memmap *mem, word address, bool notouchy, void *ctx);
 	// Write callback.
-	void (*mem_write)(core *cpu, word address, word data, void *ctx);
+	void (*mem_write)(core *cpu, memmap *mem, word address, word data, void *ctx);
+	
 	// Context to tick callbacks.
 	void *tick_ctx;
 	// Before core tick (i.e. before rising edge).
-	void (*pre_tick)(core *cpu, void *ctx);
+	void (*pre_tick)(core *cpu, memmap *mem, void *ctx);
 	// After core tick (i.e. after rising edge).
-	void (*post_tick)(core *cpu, void *ctx, lword cycles);
-	// The reset button press.
-	void (*reset)(core *cpu, void *ctx);
+	void (*post_tick)(core *cpu, memmap *mem, void *ctx, lword cycles);
+	
+	// The reset line activation.
+	void (*reset)(core *cpu, memmap *mem, void *ctx);
 };
 
 union s_core_cu {

@@ -47,7 +47,8 @@ pos term_getpos() {
 	if (c != '[') goto error;
 	
 	// Scan for position report.
-	scanf("%d;%dR", &res.y, &res.x);
+	int count = scanf("%d;%dR", &res.y, &res.x);
+	if (count != 2) goto error;
 	fcntl(0, F_SETFL, flags);
 	return res;
 	
@@ -67,8 +68,8 @@ pos term_getsize() {
 		if (orig.x < 0) return cache;
 		term_setxy(65535, 65535);
 		pos size = term_getpos();
-		if (size.x < 0) return cache;
 		term_setpos(orig);
+		if (size.x < 0) return cache;
 		return size;
 	}
 	return cache;
@@ -92,15 +93,30 @@ void desc_speed(double hertz, char *to) {
 		hertz /= 1000;
 	}
 	
-	// Show 3 significant figures.
-	// Log (0, 1, 2).
-	int log      = (hertz >= 100.05) ? 2
-				 : (hertz >= 10.05)  ? 1 : 0;
-	// Padding amount?
-	int padding  = 4;
-	// Decimals count.
-	int decimals = 2 - log;
-	snprintf(to, buf_len, "%*.*lf %cHz", padding, decimals, hertz, fmt);
+	// int ival = hertz * 100;
+	
+	// if (ival >= 10000) {
+	// 	snprintf(to, buf_len, "%d.%d %cHz", ival);
+		
+	// } else if (ival >= 1000) {
+	// 	snprintf(to, buf_len, "%d.%d %cHz", ival);
+		
+	// } else /* ival >= 100 */ {
+	// 	snprintf(to, buf_len, "%d.%d %cHz", ival / 100, ival % 100);
+		
+	// }
+	
+	snprintf(to, buf_len, "%-4.3g %cHz", hertz, fmt);
+	
+	// // Show 3 significant figures.
+	// // Log (0, 1, 2).
+	// int log      = (hertz >= 100.05) ? 2
+	// 			 : (hertz >= 10.05)  ? 1 : 0;
+	// // Padding amount?
+	// int padding  = 4;
+	// // Decimals count.
+	// int decimals = 2 - log;
+	// snprintf(to, buf_len, "%*.*lf %cHz", padding, decimals, hertz, fmt);
 }
 
 /* ======== Visualisations ======== */
@@ -116,10 +132,10 @@ void draw_display(core *cpu, memmap *mem) {
 	word screen_addr = 0xffc0;
 	word screen[32];
 	for (word i = 0; i < 32; i++) {
-		screen[i] = mem->mem_read(cpu, screen_addr + i, true, mem->mem_ctx);
+		screen[i] = mem->mem_read(cpu, mem, screen_addr + i, true, mem->mem_ctx);
 	}
 	
-	if (!memcmp(old_screen, screen, sizeof(old_screen))) return;
+	// if (!memcmp(old_screen, screen, sizeof(old_screen))) return;
 	
 	// Make a little header bar.
 	// pos old = term_getpos();
@@ -231,7 +247,7 @@ void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, ui
 		char m[10];
 		desc_speed(measured_hz, m);
 		term_setxy(6, old.y+1);
-		printf(ANSI_DEFAULT "Frequency");
+		printf(ANSI_DEFAULT "Clock: %s", running ? "Running" : "Paused");
 		term_setxy(6, old.y+2);
 		printf(ANSI_BLUE_FG "%s " ANSI_DEFAULT "/" ANSI_BLUE_FG "    ∞\n", m);
 	} else {
@@ -239,7 +255,7 @@ void draw_stats(core *cpu, memmap *mem, double target_hz, double measured_hz, ui
 		desc_speed(measured_hz, m);
 		desc_speed(target_hz, t);
 		term_setxy(6, old.y+1);
-		printf(ANSI_DEFAULT "Frequency");
+		printf(ANSI_DEFAULT "Clock: %s", running ? "Running" : "Paused");
 		term_setxy(6, old.y+2);
 		printf(ANSI_BLUE_FG "%s " ANSI_DEFAULT "/" ANSI_BLUE_FG " %s\n", m, t);
 	}
@@ -282,5 +298,5 @@ void draw_badge_mmio(core *cpu, memmap *mem, badge_mmap *badge) {
 	);
 	term_setxy(6, old.y + 2);
 	double diff = ((int64_t) badge->timer0_value - (int64_t) badge->timer0_limit) / 1000.0;
-	printf(ANSI_CLRLN ANSI_BLUE_FG "%08x / %08x (%.1lfms)", badge->timer0_value, badge->timer0_limit, diff);
+	printf(ANSI_CLRLN ANSI_BLUE_FG "%08x " ANSI_DEFAULT "/" ANSI_BLUE_FG " %08x (%.1lfms)", badge->timer0_value, badge->timer0_limit, diff);
 }

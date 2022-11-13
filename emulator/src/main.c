@@ -37,6 +37,10 @@ pthread_t runner_handle;
 static void redraw();
 
 int main(int argc, char **argv) {
+	for (int i = 0; i < N_ROLLING_AVG; i++) {
+		rolling_avg[i] = 0;
+	}
+	
 	// Add the exit handler.
 	if (atexit(exithandler)) {
 		fputs("Could not register exit handler; aborting!\n", stderr);
@@ -98,7 +102,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		badge_load_rom(&badge, argv[1]);
 	}
-	sim_sethertz(100000);
+	sim_sethertz(1000000);
 	core_reset(&cpu);
 	
 	// Show.
@@ -199,8 +203,8 @@ void sim_sethertz(double hertz) {
 		sim_ticks = 1;
 		sim_us_delay = 1000000.0 / hertz;
 	} else {
-		sim_us_delay = 200000;
-		sim_ticks    = hertz / 5.0;
+		sim_us_delay = 20000;
+		sim_ticks    = hertz / 50.0;
 		if (!sim_ticks) sim_ticks = 1;
 	}
 }

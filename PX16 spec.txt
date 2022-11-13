@@ -104,7 +104,7 @@ States:
         Intr 0: Pre-decrement ST
         Intr 1: Push PC to stack
         Intr 2: Pre-decrement ST
-        Intr 3: Push PF to stack and clear intr enable
+        Intr 3: Push PF to stack and set interrupt in progress flag
         Intr 4: Set PC to interrupt vector (*0 for IRQ, *1 for NMI)
 
 State matrix:
@@ -130,7 +130,7 @@ State matrix:
     Intr 4: -   1   -   1   -       -   -   1   -   -       -   1   -   -   -       -   -   6   -   -
     
 Addressing matrix:
-    ARx     -   -   -   1   -       -   -   -   -   -       1   -   -   -   -       X   Ry  -   -   -
+    AR*     -   -   -   1   -       -   -   -   -   -       1   -   -   -   -       X   Ry  -   -   -
     IMM:    Skip addr
     MOV     -   -   -   -   -       -   -   1   -   -       -   1   -   -   -       -   B   -   -   -
     MEM     -   -   -   1   -       -   -   1   -   -       -   1   -   -   -       -   Ry  -   -   -

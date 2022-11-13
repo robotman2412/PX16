@@ -9,6 +9,8 @@ static int64_t  too_fast  = 0;
 
  __attribute__((hot))
 void runner_cycle() {
+	bool warp_speed_tmp = warp_speed;
+	
 	// Simulate.
 	uint64_t tick_count;
 	if (warp_speed) {
@@ -28,14 +30,16 @@ void runner_cycle() {
 	// Measure speed.
 	int64_t delta = now - prev_time;
 	double next_hertz = 1000000.0 / (double) delta * (double) tick_count;
-	measured_hertz -= rolling_avg[rolling_idx] / N_ROLLING_AVG;
-	measured_hertz += next_hertz / N_ROLLING_AVG;
 	rolling_avg[rolling_idx] = next_hertz;
 	rolling_idx = (rolling_idx + 1) % N_ROLLING_AVG;
+	measured_hertz = 0;
+	for (int i = 0; i < N_ROLLING_AVG; i++) {
+		measured_hertz += rolling_avg[i] / N_ROLLING_AVG;
+	}
 	
 	prev_time = now;
-	if (warp_speed || next_time < now - 4*sim_us_delay) next_time = now;
-	if (warp_speed) too_fast = 0;
+	if (warp_speed_tmp || next_time < now - 4*sim_us_delay) next_time = now;
+	if (warp_speed_tmp) too_fast = 0;
 }
 
 void runner_main(void *ignored) {

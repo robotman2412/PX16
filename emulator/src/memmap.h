@@ -38,10 +38,10 @@ void badge_mmap_destroy(badge_mmap *mmap);
 void badge_load_rom(badge_mmap *mmap, char *filename);
 
 // Read from EL BADGE.
-word badge_mmap_read(core *cpu, word address, bool notouchy, badge_mmap *ctx);
+word badge_mmap_read(core *cpu, memmap *mem, word address, bool notouchy, badge_mmap *ctx);
 // Write to EL BADGE.
-void badge_mmap_write(core *cpu, word address, word value, badge_mmap *ctx);
+void badge_mmap_write(core *cpu, memmap *mem, word address, word value, badge_mmap *ctx);
 // Post TICK (used for timer).
-void badge_mmap_posttick(core *cpu, badge_mmap *ctx, lword cycles);
+void badge_mmap_posttick(core *cpu, memmap *mem, badge_mmap *ctx, lword cycles);
 
 #endif //MEMMAP_H
