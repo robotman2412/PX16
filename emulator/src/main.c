@@ -1,5 +1,6 @@
 
 #include "main.h"
+#include "runner.h"
 #include "memmap.h"
 #include "term.h"
 #include <stdio.h>
@@ -12,24 +13,25 @@
 #include <ctype.h>
 #include <string.h>
 
-static double   measured_hertz;
-static double   target_hertz;
-static uint64_t sim_us_delay;
-static int64_t  sim_ticks;
-static bool     running;
+double   measured_hertz;
+double   target_hertz;
+uint64_t sim_us_delay;
+int64_t  sim_ticks;
 
-static core cpu;
-static memmap mem;
-static badge_mmap badge;
+core cpu;
+memmap mem;
+badge_mmap badge;
 
-static bool exuent = false;
+bool exuent = false;
 
-#define N_ROLLING_AVG 8
-static double rolling_avg[N_ROLLING_AVG] = {0};
-static size_t rolling_idx = 0;
-static bool   warp_speed  = false;
+double rolling_avg[N_ROLLING_AVG] = {0};
+size_t rolling_idx = 0;
+volatile bool warp_speed = false;
+volatile bool running;
 
 uint64_t sim_total_ticks = 0;
+
+pthread_t runner_handle;
 
 // Redraws the UI things.
 static void redraw();
@@ -102,9 +104,12 @@ int main(int argc, char **argv) {
 	// Show.
 	redraw();
 	
-	uint64_t next_time = micros() + sim_us_delay;
-	uint64_t prev_time = micros();
-	int64_t  too_fast  = 0;
+	// Create runner thread.
+	pthread_create(&runner_handle, NULL, &runner_main, NULL);
+	
+	uint64_t next_time = micros() + TERM_DELAY_US;
+	// uint64_t prev_time = micros();
+	// int64_t  too_fast  = 0;
 	while (!exuent) {
 		if (running) {
 			do {
@@ -121,7 +126,6 @@ int main(int argc, char **argv) {
 				if (sleep_time > 0) usleep(sleep_time);
 			} while(next_time > micros());
 		} else {
-			too_fast = 0;
 			while (!running) {
 				// Check term input.
 				int c;
@@ -134,38 +138,12 @@ int main(int argc, char **argv) {
 				usleep(10000);
 				redraw(&cpu, &mem);
 			}
-			next_time = micros() + sim_us_delay;
+			next_time = micros() + TERM_DELAY_US;
 		}
 		
-		// Simulate.
-		uint64_t tick_count;
-		if (warp_speed) {
-			tick_count = warp_ticks(&cpu, &mem, micros() + 20000);
-		} else if (sim_ticks > too_fast) {
-			tick_count = fast_ticks(&cpu, &mem, sim_ticks - too_fast);
-		} else {
-			tick_count = 0;
-		}
-		sim_total_ticks += tick_count;
-		too_fast = warp_speed ? 0 : tick_count - sim_ticks + too_fast;
-		
-		// Set next wakeup time.
-		uint64_t now = micros();
-		next_time += sim_us_delay;
-		
-		// Measure speed.
-		int64_t delta = now - prev_time;
-		double next_hertz = 1000000.0 / (double) delta * (double) tick_count;
-		measured_hertz -= rolling_avg[rolling_idx] / N_ROLLING_AVG;
-		measured_hertz += next_hertz / N_ROLLING_AVG;
-		rolling_avg[rolling_idx] = next_hertz;
-		rolling_idx = (rolling_idx + 1) % N_ROLLING_AVG;
 		// term_setxy(1, 30);
 		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.1f / %.1f\n", (double) delta / 1000.0, (double) sim_us_delay / 1000.0);
 		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld / %ld", tick_count, sim_ticks);
-		
-		prev_time = now;
-		if (warp_speed || next_time < now - 4*sim_us_delay) next_time = now;
 		
 		// Show.
 		redraw();
@@ -252,11 +230,6 @@ void handle_term_input(char c) {
 	} else if (c == 'w') {
 		// Warp speed toggle.
 		warp_speed = !warp_speed;
-		if (warp_speed) {
-			setpriority(PRIO_PROCESS, 0, PRIO_MAX);
-		} else {
-			setpriority(PRIO_PROCESS, 0, 0);
-		}
 		running = true;
 	} else if (c == 's') {
 		// Step command.

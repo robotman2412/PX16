@@ -94,8 +94,8 @@ void desc_speed(double hertz, char *to) {
 	
 	// Show 3 significant figures.
 	// Log (0, 1, 2).
-	int log      = (hertz >= 100) ? 2
-				 : (hertz >= 10)  ? 1 : 0;
+	int log      = (hertz >= 100.05) ? 2
+				 : (hertz >= 10.05)  ? 1 : 0;
 	// Padding amount?
 	int padding  = 4;
 	// Decimals count.
@@ -125,7 +125,7 @@ void draw_display(core *cpu, memmap *mem) {
 	// pos old = term_getpos();
 	pos size = term_getsize();
 	term_setxy(1 + (size.x - 14) / 2, 1);
-	fputs(ANSI_CLRLN ANSI_BOLD "Matrix Display", stdout);
+	fputs(ANSI_CLRLN ANSI_DEFAULT ANSI_BOLD "Matrix Display", stdout);
 	term_setxy(1, 2);
 	
 	// And fart out everything.

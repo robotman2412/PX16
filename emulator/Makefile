@@ -2,6 +2,7 @@
 .SUFFIXES:
 
 CC            = gcc
+LDFLAGS       = -lpthread
 CFLAGS        = -Isrc -O3
 CFLAGS_DEBUG  = -Isrc -O3 -ggdb -DDEBUG
 HEADERS       = $(shell find ./src -type f -name "*.h")
@@ -18,14 +19,14 @@ debug: ./build/debug.o
 	cp $< ./pxe
 
 ./build/main.o: $(OBJECTS)
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 ./build/%.o: ./src/% $(HEADERS) Makefile
 	@mkdir -p $(shell dirname $@)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 ./build/debug.o: $(OBJECTS_DEBUG)
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 ./build/%.debug.o: ./src/% $(HEADERS) Makefile
 	@mkdir -p $(shell dirname $@)

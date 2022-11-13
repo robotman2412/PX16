@@ -1,0 +1,60 @@
+
+#include "runner.h"
+#include <unistd.h>
+
+static uint64_t next_time = 0;
+static uint64_t prev_time = 0;
+static int64_t  too_fast  = 0;
+
+
+ __attribute__((hot))
+void runner_cycle() {
+	// Simulate.
+	uint64_t tick_count;
+	if (warp_speed) {
+		tick_count = warp_ticks(&cpu, &mem, micros() + 20000);
+	} else if (sim_ticks > too_fast) {
+		tick_count = fast_ticks(&cpu, &mem, sim_ticks - too_fast);
+	} else {
+		tick_count = 0;
+	}
+	sim_total_ticks += tick_count;
+	too_fast = warp_speed ? 0 : tick_count - sim_ticks + too_fast;
+	
+	// Set next wakeup time.
+	uint64_t now = micros();
+	next_time += sim_us_delay;
+	
+	// Measure speed.
+	int64_t delta = now - prev_time;
+	double next_hertz = 1000000.0 / (double) delta * (double) tick_count;
+	measured_hertz -= rolling_avg[rolling_idx] / N_ROLLING_AVG;
+	measured_hertz += next_hertz / N_ROLLING_AVG;
+	rolling_avg[rolling_idx] = next_hertz;
+	rolling_idx = (rolling_idx + 1) % N_ROLLING_AVG;
+	
+	prev_time = now;
+	if (warp_speed || next_time < now - 4*sim_us_delay) next_time = now;
+	if (warp_speed) too_fast = 0;
+}
+
+void runner_main(void *ignored) {
+	
+	next_time = micros() + sim_us_delay;
+	prev_time = micros();
+	
+	while (true) {
+		if (running) {
+			int64_t wait = next_time - micros();
+			while (wait > 0) {
+				if (wait > 10000) usleep(10000);
+				else usleep(wait);
+				wait = next_time - micros();
+			}
+			runner_cycle();
+		} else {
+			usleep(50000);
+			too_fast = 0;
+		}
+	}
+}
