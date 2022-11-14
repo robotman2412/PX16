@@ -135,7 +135,7 @@ void draw_display(core *cpu, memmap *mem) {
 		screen[i] = mem->mem_read(cpu, mem, screen_addr + i, true, mem->mem_ctx);
 	}
 	
-	// if (!memcmp(old_screen, screen, sizeof(old_screen))) return;
+	if (!memcmp(old_screen, screen, sizeof(old_screen))) return;
 	
 	// Make a little header bar.
 	// pos old = term_getpos();
@@ -155,6 +155,7 @@ void draw_display(core *cpu, memmap *mem) {
 		}
 	}
 	fputc('\n', stdout);
+	fflush(stdout);
 	memcpy(old_screen, screen, sizeof(old_screen));
 	
 	// Reset thel TTY.

@@ -8,7 +8,7 @@
 #include "px16.h"
 #include "memmap.h"
 
-#define TERM_DELAY_US 200000
+#define TERM_DELAY_US 2000
 
 #define ANSI_CLRLN   "\033[2K"
 #define ANSI_DEFAULT "\033[0m"
