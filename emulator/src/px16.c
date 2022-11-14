@@ -123,10 +123,10 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 			res = a ^ b;
 			break;
 		case (OP_SHL & ~OFFS_MATH1):
-			res = (lword) a << (lword) 1;
+			res = ((lword) a << 1) | cin;
 			break;
 		case (OP_SHR & ~OFFS_MATH1):
-			res = (a >> 1) | (((lword) a & (lword) 1) << 16);
+			res = (a >> 1) | ((lword) (a & 1) << 16) | (cin << 15);
 			break;
 	}
 	// Set PF.
