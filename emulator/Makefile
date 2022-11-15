@@ -2,7 +2,7 @@
 .SUFFIXES:
 
 CC            = gcc
-LDFLAGS       = -lpthread
+LDFLAGS       = -lpthread -lX11
 CFLAGS        = -Isrc -O3
 CFLAGS_DEBUG  = -Isrc -O3 -ggdb -DDEBUG
 HEADERS       = $(shell find ./src -type f -name "*.h")

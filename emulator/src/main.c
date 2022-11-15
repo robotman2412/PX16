@@ -2,6 +2,7 @@
 #include "main.h"
 #include "runner.h"
 #include "memmap.h"
+#include "window.h"
 #include "term.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,10 +68,10 @@ int main(int argc, char **argv) {
 	signal(SIGQUIT, sighandler_exit);
 	
 	// Set TTY mode to disable line buffering and echoing.
-	system("stty cbreak -echo isig");
-	fputs("\033[?25l\033[?1049h", stdout);
-	int flags = fcntl(0, F_GETFL, 0);
-	fcntl(0, F_SETFL, flags | O_NONBLOCK);
+	// system("stty cbreak -echo isig");
+	// fputs("\033[?25l\033[?1049h", stdout);
+	// int flags = fcntl(0, F_GETFL, 0);
+	// fcntl(0, F_SETFL, flags | O_NONBLOCK);
 	
 	running = false;
 	badge_mmap_create(&badge, &mem);
@@ -106,52 +107,56 @@ int main(int argc, char **argv) {
 	core_reset(&cpu);
 	
 	// Show.
-	redraw();
+	// redraw();
 	
 	// Create runner thread.
 	pthread_create(&runner_handle, NULL, &runner_main, NULL);
 	
-	uint64_t next_time = micros() + TERM_DELAY_US;
-	// uint64_t prev_time = micros();
-	// int64_t  too_fast  = 0;
-	while (!exuent) {
-		if (running) {
-			do {
-				// Check term input.
-				int c;
-				while ((c = fgetc(stdin)) != EOF) {
-					handle_term_input(c);
-				}
-				if (exuent) goto exit;
+	window_init();
+	window_main();
+	
+	// uint64_t next_time = micros() + TERM_DELAY_US;
+	// // uint64_t prev_time = micros();
+	// // int64_t  too_fast  = 0;
+	// while (!exuent) {
+	// 	if (running) {
+	// 		do {
+	// 			// Check term input.
+	// 			int c;
+	// 			while ((c = fgetc(stdin)) != EOF) {
+	// 				handle_term_input(c);
+	// 			}
+	// 			if (exuent) goto exit;
 				
-				// Sleep for a bit.
-				int64_t sleep_time = next_time - micros();
-				if (sleep_time > 1000) sleep_time = 1000;
-				if (sleep_time > 0) usleep(sleep_time);
-			} while(next_time > micros());
-		} else {
-			while (!running) {
-				// Check term input.
-				int c;
-				while ((c = fgetc(stdin)) != EOF) {
-					handle_term_input(c);
-				}
-				if (exuent) goto exit;
+	// 			// Sleep for a bit.
+	// 			int64_t sleep_time = next_time - micros();
+	// 			if (sleep_time > 1000) sleep_time = 1000;
+	// 			if (sleep_time > 0) usleep(sleep_time);
+	// 		} while(next_time > micros());
+	// 	} else {
+	// 		while (!running) {
+	// 			// Check term input.
+	// 			int c;
+	// 			while ((c = fgetc(stdin)) != EOF) {
+	// 				handle_term_input(c);
+	// 			}
+	// 			if (exuent) goto exit;
 				
-				// Sleep for a bit.
-				usleep(10000);
-				redraw(&cpu, &mem);
-			}
-			next_time = micros() + TERM_DELAY_US;
-		}
+	// 			// Sleep for a bit.
+	// 			usleep(10000);
+	// 			redraw(&cpu, &mem);
+	// 		}
+	// 		next_time = micros() + TERM_DELAY_US;
+	// 	}
 		
-		// term_setxy(1, 30);
-		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.1f / %.1f\n", (double) delta / 1000.0, (double) sim_us_delay / 1000.0);
-		// printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld / %ld", tick_count, sim_ticks);
+	// 	// term_setxy(1, 30);
+	// 	// printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.1f / %.1f\n", (double) delta / 1000.0, (double) sim_us_delay / 1000.0);
+	// 	// printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld / %ld", tick_count, sim_ticks);
 		
-		// Show.
-		redraw();
-	}
+	// 	window_poll();
+	// 	// Show.
+	// 	redraw();
+	// }
 	
 	exit:
 	fflush(stdout);
