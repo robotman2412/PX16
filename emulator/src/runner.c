@@ -42,7 +42,7 @@ void runner_cycle() {
 	if (warp_speed_tmp) too_fast = 0;
 }
 
-void runner_main(void *ignored) {
+void *runner_main(void *ignored) {
 	
 	next_time = micros() + sim_us_delay;
 	prev_time = micros();
@@ -61,4 +61,6 @@ void runner_main(void *ignored) {
 			too_fast = 0;
 		}
 	}
+	
+	return NULL;
 }

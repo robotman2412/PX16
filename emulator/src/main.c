@@ -43,29 +43,29 @@ int main(int argc, char **argv) {
 	}
 	
 	// Add the exit handler.
-	if (atexit(exithandler)) {
-		fputs("Could not register exit handler; aborting!\n", stderr);
-		return -1;
-	}
+	// if (atexit(exithandler)) {
+	// 	fputs("Could not register exit handler; aborting!\n", stderr);
+	// 	return -1;
+	// }
 	
-	// Critical error signal handlers.
-	if (signal(SIGINT,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	if (signal(SIGTSTP, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	if (signal(SIGILL,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	if (signal(SIGABRT, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	if (signal(SIGFPE,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	if (signal(SIGTERM, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	if (signal(SIGSEGV, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	goto ohsig;
+	// // Critical error signal handlers.
+	// if (signal(SIGINT,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	// if (signal(SIGTSTP, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	// if (signal(SIGILL,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	// if (signal(SIGABRT, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	// if (signal(SIGFPE,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	// if (signal(SIGTERM, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	// if (signal(SIGSEGV, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
+	// goto ohsig;
 	
-	ohcrap_nosig:
-	fputs("Could not register signal handler; aborting!\n", stderr);
-	return -1;
+	// ohcrap_nosig:
+	// fputs("Could not register signal handler; aborting!\n", stderr);
+	// return -1;
 	
-	ohsig:
-	// Non-critical signal handlers.
-	signal(SIGHUP,  sighandler_exit);
-	signal(SIGQUIT, sighandler_exit);
+	// ohsig:
+	// // Non-critical signal handlers.
+	// signal(SIGHUP,  sighandler_exit);
+	// signal(SIGQUIT, sighandler_exit);
 	
 	// Set TTY mode to disable line buffering and echoing.
 	// system("stty cbreak -echo isig");
@@ -257,8 +257,8 @@ void handle_term_input(char c) {
 // Handler for program exit.
 void exithandler() {
 	// Restore TTY to sane.
-	system("stty sane");
-	fputs("\033[0m\033[?25h\033[?1049l", stdout);
+	// system("stty sane");
+	// fputs("\033[0m\033[?25h\033[?1049l", stdout);
 }
 
 // Signal handler so as to leave a sane TTY on exit.

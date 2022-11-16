@@ -7,6 +7,6 @@
 #include "px16.h"
 #include "main.h"
 
-void runner_main(void *ignored);
+void *runner_main(void *ignored);
 
 #endif // RUNNER_H

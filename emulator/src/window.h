@@ -12,14 +12,46 @@
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
 
+
 typedef struct {
+	
+} button_style_t;
+
+typedef struct {
+	// Window background color.
 	uint32_t background;
-	uint32_t text;
+	
+	// Matrix display background color.
 	uint32_t dispOff;
+	// Matrix display foreground color.
 	uint32_t dispOn;
+	
+	// Default text color.
+	uint32_t text;
+	// Register value color.
+	uint32_t regsValue;
+	// General register color.
+	uint32_t regsGeneral;
+	// Special register color.
+	uint32_t regsSpecial;
+	// Hidden register color.
+	uint32_t regsHidden;
 } style_t;
 
-#define DEFAULT_STYLE() ((style_t){0x2f2f2f, 0xefefef, 0x3f3f3f, 0x4f7fff})
+typedef struct {
+	
+} button_t;
+
+#define DEFAULT_STYLE() ((style_t){\
+	.background  = 0x2f2f2f, \
+	.dispOff     = 0x3f3f3f, \
+	.dispOn      = 0x4f7fff, \
+	.text        = 0xefefef, \
+	.regsValue   = 0x4f7fff, \
+	.regsGeneral = 0xefdf9f, \
+	.regsSpecial = 0xef5f00, \
+	.regsHidden  = 0xafafaf, \
+})
 
 extern style_t style;
 
