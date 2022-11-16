@@ -13,7 +13,8 @@ int mouseX =   0, mouseY =   0;
 int width  = 340, height = 200;
 
 static bool windowOpen = true;
-
+static const char *fontName = "-sony-fixed-medium-r-normal--*-*-*-*-c-0-*-*";
+static XFontStruct *font;
 
 static void SetFG(uint32_t col) {
 	XSetForeground(disp, gc, col);
@@ -24,10 +25,10 @@ static void DrawText(int x, int y, const char *str) {
 }
 
 static void CenterText(int x, int y, const char *str) {
-	XGCValues values;
-	int qu=XGetGCValues(disp, gc, GCFont, &values);
-	printf("WTF IS %d\n",qu);
-	XFontStruct *font = XQueryFont(disp, values.font);
+	// XGCValues values;
+	// int qu=XGetGCValues(disp, gc, GCFont, &values);
+	// printf("WTF IS %d\n",qu);
+	// XFontStruct *font = XQueryFont(disp, values.font);
 	if (font) {
 		int width = XTextWidth(font, str, strlen(str));
 		DrawText(x - width / 2, y, str);
@@ -56,6 +57,9 @@ void window_init() {
 	
 	// create the Graphics Context
 	gc = XCreateGC(disp, window, 0, 0);
+	
+	font = XLoadQueryFont(disp, fontName);
+	if (font) XSetFont(disp, gc, font->fid);
 	
 	// clear the window and bring it on top of the other windows
 	XClearWindow(disp, window);
@@ -86,16 +90,20 @@ void window_destroy() {
 void window_redraw() {
 	// Draw display.
 	XSetForeground(disp, gc, style.text);
-	CenterText(width / 2, 10, "Matrix Display");
+	CenterText(width / 2, 15, "Matrix Display");
 	
 	for (int x = 0; x < 32; x++) {
 		word col = mem.mem_read(&cpu, &mem, 0xffc0 + x, true, mem.mem_ctx);
 		for (int y = 0; y < 16; y++) {
-			bool bit = (x ^ y) & 1; //(col >> y) & 1;
+			bool bit = (col >> y) & 1;
 			XSetForeground(disp, gc, bit ? style.dispOff : style.dispOn);
-			XFillRectangle(disp, window, gc, 10 + x*10, 10+y*10, 10, 10);
+			XFillRectangle(disp, window, gc, 10 + x*10, 20+y*10, 10, 10);
 		}
 	}
+	
+	
+	
+	XFlush(disp);
 }
 
 bool window_poll() {
@@ -104,7 +112,10 @@ bool window_poll() {
 		if (msg.type == MotionNotify) {
 			mouseX = msg.xmotion.x;
 			mouseY = msg.xmotion.y;
-		} else if (msg.type == ConfigureNotify)
+		} else if (msg.type == ConfigureNotify) {
+			width  = msg.xconfigure.width;
+			height = msg.xconfigure.height;
+		}
 		
 		// Handlage.
 		return true;
