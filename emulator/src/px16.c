@@ -147,6 +147,10 @@ void core_reset(core *cpu) {
 	memset(&cpu->state, 0, sizeof(cpu->state));
 	cpu->state.boot_0 = true;
 	cpu->PC = 0;
+	cpu->insn_count = 0;
+	cpu->jsr_count  = 0;
+	cpu->irq_count  = 0;
+	cpu->nmi_count  = 0;
 }
 
 
@@ -223,6 +227,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	// Unpack the instruction to run.
 	instr run = unpack_insn(mem->mem_read(cpu, mem, cpu->PC++, false, mem->mem_ctx));
 	took ++;
+	cpu->insn_count ++;
 	
 	// Update the interrupt helper bit.
 	cpu->intr_helper = cpu->PF & FLAG_IPROG;
@@ -250,6 +255,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	if (is_jsr) {
 		mem->mem_write(cpu, mem, cpu->ST, cpu->PC, mem->mem_ctx);
 		took ++;
+		cpu->jsr_count ++;
 	}
 	// Check for addr stage.
 	if (run.x != PX_ADDR_IMM) {
@@ -341,6 +347,12 @@ lword fast_tick(core *cpu, memmap *mem) {
 		cpu->PF |= FLAG_IPROG;
 		// Intr 4: Load interrupt vector.
 		cpu->PC = mem->mem_read(cpu, mem, is_nmi ? 1 : 0, false, mem->mem_ctx);
+		
+		if (is_nmi) {
+			cpu->nmi_count ++;
+		} else {
+			cpu->irq_count ++;
+		}
 		
 		took += 5;
 	}

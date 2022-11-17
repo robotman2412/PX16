@@ -226,6 +226,15 @@ struct s_core {
 	core_cu state;
 	// The unpacked instruction.
 	instr   current;
+	/* ==== Statistics ==== */
+	// The amount of instructions ran, counted by stage load0.
+	uint64_t insn_count;
+	// The amount of subroutines entered, counted by pattern MOV.JSR and LEA.JSR.
+	uint64_t jsr_count;
+	// The amount of IRQs handled, counted by IRQ handler calls.
+	uint64_t irq_count;
+	// The amount of NMIs handled, counted by NMI handler calls.
+	uint64_t nmi_count;
 };
 
 /* ==== Them descriptions ==== */

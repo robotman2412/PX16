@@ -17,6 +17,8 @@ static bool windowOpen = true;
 static const char *fontName = "8x13bold";
 static XFontStruct *font;
 
+static button_t runButton;
+
 static void SetFG(uint32_t col) {
 	XSetForeground(disp, gc, col);
 }
@@ -79,6 +81,98 @@ static int CalcSpacing(int elemWidth, int count, int total) {
 
 
 
+static void buttonCbPlayPause(void *ignored) {
+	running = !running;
+	runButton.art = running ? BUTTON_ART_PAUSE : BUTTON_ART_PLAY;
+}
+
+
+
+static void handleButtonEvent(button_t *button, XEvent event) {
+	// Determine whether the mouse is over the button.
+	bool hovered = mouseX >= button->x && mouseX < button->x + button->width
+				&& mouseY >= button->y && mouseY < button->y + button->height;
+	
+	if (event.type == ButtonPress) {
+		button->pressed = hovered;
+	} else if (event.type == MotionNotify) {
+		button->pressed &= hovered;
+	} else if (event.type == ButtonRelease) {
+		button->pressed &= hovered;
+		if (button->pressed && button->callback) {
+			button->callback(button->callback_args);
+		}
+		button->pressed = false;
+	}
+}
+
+static void drawButton(button_t *button) {
+	// Determine whether the mouse is over the button.
+	bool hovered = mouseX >= button->x && mouseX < button->x + button->width
+				&& mouseY >= button->y && mouseY < button->y + button->height;
+	
+	// Determine the button style to use.
+	button_style_t buttonStyle  = button->pressed ? style.buttons.pressed
+								: hovered         ? style.buttons.hovered
+								: button->active  ? style.buttons.active
+								: style.buttons.inactive;
+	
+	// Draw the button background.
+	XSetForeground(button->disp, button->gc, buttonStyle.background);
+	XFillRectangle(button->disp, button->win, button->gc, button->x, button->y, button->width, button->height);
+	
+	// Draw the button outline.
+	XSetForeground(button->disp, button->gc, buttonStyle.border);
+	XDrawLine(button->disp, button->win, button->gc, button->x, button->y, button->x + button->width - 1, button->y);
+	XDrawLine(button->disp, button->win, button->gc, button->x + button->width - 1, button->y, button->x + button->width - 1, button->y + button->height - 1);
+	XDrawLine(button->disp, button->win, button->gc, button->x + button->width - 1, button->y + button->height - 1, button->x, button->y + button->height - 1);
+	XDrawLine(button->disp, button->win, button->gc, button->x, button->y + button->height - 1, button->x, button->y);
+	
+	// Draw the button text.
+	XSetForeground(button->disp, button->gc, buttonStyle.foreground);
+	if (button->text) {
+		const char *str = button->text;
+		
+		int width = XTextWidth(font, str, strlen(str));
+		XDrawString(
+			button->disp, button->win, button->gc,
+			button->x + (button->width - width) / 2,
+			button->y + (button->height + font->ascent) / 2,
+			str, strlen(str)
+		);
+	}
+	
+	switch (button->art) {
+		case BUTTON_ART_PLAY: {
+			XPoint tri[3] = {
+				{ button->x + button->width / 3, button->y + button->height / 3},
+				{ button->x + button->width * 2 / 3, button->y + button->height / 2},
+				{ button->x + button->width / 3, button->y + button->height * 2 / 3},
+			};
+			XFillPolygon(button->disp, button->win, button->gc, tri, 3, Convex, CoordModeOrigin);
+		} break;
+		
+		case BUTTON_ART_PAUSE: {
+			XFillRectangle(
+				button->disp, button->win, button->gc,
+				button->x + button->width  / 3,
+				button->y + button->height / 3,
+				button->width  / 9,
+				button->height / 3
+			);
+			XFillRectangle(
+				button->disp, button->win, button->gc,
+				button->x + button->width  * 5 / 9,
+				button->y + button->height / 3,
+				button->width  / 9,
+				button->height / 3
+			);
+		} break;
+	}
+}
+
+
+
 static void drawDisplay() {
 	SetFG(style.text);
 	CenterText(170, 15, "Matrix Display");
@@ -134,6 +228,13 @@ static void drawRegfile() {
 	}
 }
 
+static void drawStats() {
+	SetFG(style.text);
+	CenterText(170, 280, "Statistics");
+	
+	
+}
+
 
 
 void window_init() {
@@ -173,6 +274,26 @@ void window_init() {
 	// clear the window and bring it on top of the other windows
 	XClearWindow(disp, window);
 	XMapRaised(disp, window);
+	
+	// Create UI elements.
+	runButton = (button_t) {
+		.disp     = disp,
+		.win      = window,
+		.gc       = gc,
+		
+		.x        = 10,
+		.y        = 280,
+		.width    = 30,
+		.height   = 30,
+		
+		.active   = true,
+		.pressed  = false,
+		
+		.art      = BUTTON_ART_PLAY,
+		
+		.text     = NULL,
+		.callback = buttonCbPlayPause
+	};
 }
 
 void window_main() {
@@ -203,6 +324,12 @@ void window_redraw() {
 	// Draw regs.
 	drawRegfile();
 	
+	SetFG(style.text);
+	CenterText(170, 280, "Controls");
+	
+	// Draw UI elements.
+	drawButton(&runButton);
+	
 	XFlush(disp);
 }
 
@@ -216,6 +343,8 @@ bool window_poll() {
 			width  = msg.xconfigure.width;
 			height = msg.xconfigure.height;
 		}
+		
+		handleButtonEvent(&runButton, msg);
 		
 		// Handlage.
 		return true;

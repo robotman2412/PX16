@@ -13,9 +13,37 @@
 #include <X11/Xos.h>
 
 
+
+typedef void (*button_cb_t)(void *args);
+
+typedef enum {
+	BUTTON_ART_NONE,
+	BUTTON_ART_PLAY,
+	BUTTON_ART_PAUSE,
+	BUTTON_ART_SKIP,
+} button_art_t;
+
+
+
 typedef struct {
-	
+	// Button background color.
+	uint32_t background;
+	// Button border color.
+	uint32_t border;
+	// Button art / text color.
+	uint32_t foreground;
 } button_style_t;
+
+typedef struct {
+	// Inactive button.
+	button_style_t inactive;
+	// Active button.
+	button_style_t active;
+	// Hovered button.
+	button_style_t hovered;
+	// Pressed button.
+	button_style_t pressed;
+} button_styles_t;
 
 typedef struct {
 	// Window background color.
@@ -36,13 +64,48 @@ typedef struct {
 	uint32_t regsSpecial;
 	// Hidden register color.
 	uint32_t regsHidden;
+	
+	// Default style for buttons.
+	button_styles_t buttons;
 } style_t;
 
 typedef struct {
+	// The display that this button is on.
+	Display *disp;
+	// The window that this button is on.
+	Window   win;
+	// The graphics context for this button to draw to.
+	GC       gc;
 	
+	// The art to put on this button.
+	button_art_t art;
+	// The text to put on this button, if any.
+	const char  *text;
+	
+	// Button position.
+	int          x, y;
+	// Button size.
+	int          width, height;
+	
+	// Whether the button is active.
+	bool         active;
+	// Whether a button press has started.
+	bool         pressed;
+	
+	// Callback for when button is pressed.
+	button_cb_t  callback;
+	// Context for button callback.
+	void        *callback_args;
 } button_t;
 
-#define DEFAULT_STYLE() ((style_t){\
+#define DEFAULT_BUTTON_STYLES() { \
+	.inactive = { 0x2f2f2f, 0x7f7f7f, 0x7f7f7f, }, \
+	.active   = { 0x2f2f2f, 0xefefef, 0xefefef, }, \
+	.hovered  = { 0x3f3f3f, 0xcfcfff, 0xcfcfff, }, \
+	.pressed  = { 0x000000, 0x7f7fcf, 0x7f7fcf, }, \
+}
+
+#define DEFAULT_STYLE() (style_t) { \
 	.background  = 0x2f2f2f, \
 	.dispOff     = 0x3f3f3f, \
 	.dispOn      = 0x4f7fff, \
@@ -51,7 +114,8 @@ typedef struct {
 	.regsGeneral = 0xefdf9f, \
 	.regsSpecial = 0xef5f00, \
 	.regsHidden  = 0xafafaf, \
-})
+	.buttons     = DEFAULT_BUTTON_STYLES(), \
+}
 
 extern style_t style;
 
