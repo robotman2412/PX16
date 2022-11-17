@@ -18,6 +18,8 @@ static const char *fontName = "8x13bold";
 static XFontStruct *font;
 
 static button_t runButton;
+static button_t stepButton;
+static button_t warpButton;
 
 static void SetFG(uint32_t col) {
 	XSetForeground(disp, gc, col);
@@ -82,8 +84,22 @@ static int CalcSpacing(int elemWidth, int count, int total) {
 
 
 static void buttonCbPlayPause(void *ignored) {
-	running = !running;
-	runButton.art = running ? BUTTON_ART_PAUSE : BUTTON_ART_PLAY;
+	running           = !running;
+	runButton.art     = !running ? BUTTON_ART_PLAY : BUTTON_ART_PAUSE;
+	stepButton.active = !running;
+}
+
+static void buttonCbStep(void *ignored) {
+	running          = false;
+	sim_total_ticks += fast_tick(&cpu, &mem);
+}
+
+static void buttonCbWarp(void *ignored) {
+	running           = true;
+	warp_speed        = !warp_speed;
+	stepButton.active = false;
+	runButton.art     = running ? BUTTON_ART_PAUSE : BUTTON_ART_PLAY;
+	warpButton.art    = warp_speed ? BUTTON_ART_FAST_FORWARD_END : BUTTON_ART_FAST_FORWARD;
 }
 
 
@@ -99,7 +115,7 @@ static void handleButtonEvent(button_t *button, XEvent event) {
 		button->pressed &= hovered;
 	} else if (event.type == ButtonRelease) {
 		button->pressed &= hovered;
-		if (button->pressed && button->callback) {
+		if (button->pressed && button->callback && button->active) {
 			button->callback(button->callback_args);
 		}
 		button->pressed = false;
@@ -112,10 +128,10 @@ static void drawButton(button_t *button) {
 				&& mouseY >= button->y && mouseY < button->y + button->height;
 	
 	// Determine the button style to use.
-	button_style_t buttonStyle  = button->pressed ? style.buttons.pressed
+	button_style_t buttonStyle  = !button->active ? style.buttons.inactive
+								: button->pressed ? style.buttons.pressed
 								: hovered         ? style.buttons.hovered
-								: button->active  ? style.buttons.active
-								: style.buttons.inactive;
+								: style.buttons.active;
 	
 	// Draw the button background.
 	XSetForeground(button->disp, button->gc, buttonStyle.background);
@@ -145,9 +161,9 @@ static void drawButton(button_t *button) {
 	switch (button->art) {
 		case BUTTON_ART_PLAY: {
 			XPoint tri[3] = {
-				{ button->x + button->width / 3, button->y + button->height / 3},
+				{ button->x + button->width / 3,     button->y + button->height / 3},
 				{ button->x + button->width * 2 / 3, button->y + button->height / 2},
-				{ button->x + button->width / 3, button->y + button->height * 2 / 3},
+				{ button->x + button->width / 3,     button->y + button->height * 2 / 3},
 			};
 			XFillPolygon(button->disp, button->win, button->gc, tri, 3, Convex, CoordModeOrigin);
 		} break;
@@ -156,16 +172,69 @@ static void drawButton(button_t *button) {
 			XFillRectangle(
 				button->disp, button->win, button->gc,
 				button->x + button->width  / 3,
-				button->y + button->height / 3,
+				button->y + button->height / 3 + 1,
 				button->width  / 9,
-				button->height / 3
+				button->height / 3 - 1
 			);
 			XFillRectangle(
 				button->disp, button->win, button->gc,
 				button->x + button->width  * 5 / 9,
-				button->y + button->height / 3,
+				button->y + button->height / 3 + 1,
 				button->width  / 9,
-				button->height / 3
+				button->height / 3 - 1
+			);
+		} break;
+		
+		case BUTTON_ART_SKIP: {
+			XPoint tri[3] = {
+				{ button->x + button->width / 3,     button->y + button->height / 3},
+				{ button->x + button->width * 5 / 9, button->y + button->height / 2},
+				{ button->x + button->width / 3,     button->y + button->height * 2 / 3},
+			};
+			XFillPolygon(button->disp, button->win, button->gc, tri, 3, Convex, CoordModeOrigin);
+			XFillRectangle(
+				button->disp, button->win, button->gc,
+				button->x + button->width  * 5 / 9,
+				button->y + button->height / 3 + 1,
+				button->width  / 9,
+				button->height / 3 - 1
+			);
+		} break;
+		
+		case BUTTON_ART_FAST_FORWARD: {
+			XPoint tri0[3] = {
+				{ button->x + button->width * 3 / 9, button->y + button->height / 3},
+				{ button->x + button->width * 5 / 9, button->y + button->height / 2},
+				{ button->x + button->width * 3 / 9, button->y + button->height * 2 / 3},
+			};
+			XFillPolygon(button->disp, button->win, button->gc, tri0, 3, Convex, CoordModeOrigin);
+			XPoint tri1[3] = {
+				{ button->x + button->width * 5 / 9,     button->y + button->height / 3},
+				{ button->x + button->width * 7 / 9 - 1, button->y + button->height / 2},
+				{ button->x + button->width * 5 / 9,     button->y + button->height * 2 / 3},
+			};
+			XFillPolygon(button->disp, button->win, button->gc, tri1, 3, Convex, CoordModeOrigin);
+		} break;
+		
+		case BUTTON_ART_FAST_FORWARD_END: {
+			XPoint tri0[3] = {
+				{ button->x + button->width * 2 / 9, button->y + button->height / 3},
+				{ button->x + button->width * 4 / 9, button->y + button->height / 2},
+				{ button->x + button->width * 2 / 9, button->y + button->height * 2 / 3},
+			};
+			XFillPolygon(button->disp, button->win, button->gc, tri0, 3, Convex, CoordModeOrigin);
+			XPoint tri1[3] = {
+				{ button->x + button->width * 4 / 9, button->y + button->height / 3},
+				{ button->x + button->width * 6 / 9, button->y + button->height / 2},
+				{ button->x + button->width * 4 / 9, button->y + button->height * 2 / 3},
+			};
+			XFillPolygon(button->disp, button->win, button->gc, tri1, 3, Convex, CoordModeOrigin);
+			XFillRectangle(
+				button->disp, button->win, button->gc,
+				button->x + button->width  * 6 / 9,
+				button->y + button->height / 3 + 1,
+				button->width  / 9,
+				button->height / 3 - 1
 			);
 		} break;
 	}
@@ -188,12 +257,13 @@ static void drawDisplay() {
 }
 
 static void drawRegfile() {
-	SetFG(style.text);
-	CenterText(170, 200, "Registers");
-	
 	// Clear area behind REGISTRAR.
 	SetFG(style.background);
-	XDrawRectangle(disp, window, gc, 10, 180, 320, 90);
+	XFillRectangle(disp, window, gc, 10, 180, 320, 90);
+	
+	// HEADRE.
+	SetFG(style.text);
+	CenterText(170, 200, "Registers");
 	
 	// Calculate spacing between the thingies.
 	int spacing = CalcSpacing(TextWidth("1234"), 7, 320);
@@ -214,17 +284,17 @@ static void drawRegfile() {
 	for (int x = 0; x < 7; x++) {
 		// Register names.
 		SetFG(x < 4 ? style.regsGeneral : style.regsSpecial);
-		DrawText (10 + x * spacing, 220, regNames[x]);
+		DrawText (10 + x * spacing, 215, regNames[x]);
 		// Register values.
 		SetFG(style.regsValue);
-		DrawTextf(10 + x * spacing, 230, "%04x", cpu.regfile[x]);
+		DrawTextf(10 + x * spacing, 230, "%04X", cpu.regfile[x]);
 		
 		// Hidden reg names.
 		SetFG(style.regsHidden);
-		DrawText (10 + x * spacing, 250, hregNames[x]);
+		DrawText (10 + x * spacing, 245, hregNames[x]);
 		// Hidden reg values.
 		SetFG(style.regsValue);
-		DrawTextf(10 + x * spacing, 260, "%04x", hregs[x]);
+		DrawTextf(10 + x * spacing, 260, "%04X", hregs[x]);
 	}
 }
 
@@ -294,6 +364,44 @@ void window_init() {
 		.text     = NULL,
 		.callback = buttonCbPlayPause
 	};
+	
+	stepButton = (button_t) {
+		.disp     = disp,
+		.win      = window,
+		.gc       = gc,
+		
+		.x        = 50,
+		.y        = 280,
+		.width    = 30,
+		.height   = 30,
+		
+		.active   = true,
+		.pressed  = false,
+		
+		.art      = BUTTON_ART_SKIP,
+		
+		.text     = NULL,
+		.callback = buttonCbStep
+	};
+	
+	warpButton = (button_t) {
+		.disp     = disp,
+		.win      = window,
+		.gc       = gc,
+		
+		.x        = 90,
+		.y        = 280,
+		.width    = 30,
+		.height   = 30,
+		
+		.active   = true,
+		.pressed  = false,
+		
+		.art      = BUTTON_ART_FAST_FORWARD,
+		
+		.text     = NULL,
+		.callback = buttonCbWarp
+	};
 }
 
 void window_main() {
@@ -329,6 +437,8 @@ void window_redraw() {
 	
 	// Draw UI elements.
 	drawButton(&runButton);
+	drawButton(&stepButton);
+	drawButton(&warpButton);
 	
 	XFlush(disp);
 }
@@ -344,7 +454,9 @@ bool window_poll() {
 			height = msg.xconfigure.height;
 		}
 		
-		handleButtonEvent(&runButton, msg);
+		handleButtonEvent(&runButton,  msg);
+		handleButtonEvent(&stepButton, msg);
+		handleButtonEvent(&warpButton, msg);
 		
 		// Handlage.
 		return true;
