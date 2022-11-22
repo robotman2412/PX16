@@ -302,12 +302,44 @@ static void drawStats() {
 	SetFG(style.text);
 	CenterText(170, 280, "Statistics");
 	
+	// Clear background.
+	SetFG(style.background);
+	XFillRectangle(disp, window, gc, 10, 295, 310, 25);
+	
+	
+	// Draw speed.
 	SetFG(style.text);
-	DrawTextf(10, 295, "Speed (%s)", running ? "Running" : "Paused");
-	if (warp_speed) {
-		
+	DrawText(10, 295, "Speed");
+	
+	double measured = measured_hertz;
+	const char *measured_unit = "Hz ";
+	if (measured_hertz >= 750000000) {
+		measured_unit = "GHz";
+		measured     /= 1000000000;
+	} else if (measured_hertz >= 750000) {
+		measured_unit = "MHz";
+		measured     /= 1000000;
+	} else if (measured_hertz >= 750) {
+		measured_unit = "KHz";
+		measured     /= 1000;
+	}
+	
+	SetFG(style.regsValue);
+	DrawTextf(10, 310, "%5.1f%s", measured, measured_unit);
+	
+	
+	// Draw cycles.
+	SetFG(style.text);
+	DrawText(80, 295, "Ticks");
+	
+	if (sim_total_ticks >= 750000000) {
+		DrawTextf(80, 310, "%6.*fB", 2, sim_total_ticks / 1000000000.0);
+	} else if (sim_total_ticks >= 750000) {
+		DrawTextf(80, 310, "%6.2fM", sim_total_ticks / 1000000.0);
+	} else if (sim_total_ticks >= 1000) {
+		DrawTextf(80, 310, "%6.2fK", sim_total_ticks / 1000.0);
 	} else {
-		
+		DrawTextf(80, 310, "%6llu ", sim_total_ticks);
 	}
 }
 
@@ -358,7 +390,7 @@ void window_init() {
 		.gc       = gc,
 		
 		.x        = 10,
-		.y        = 280,
+		.y        = 345,
 		.width    = 30,
 		.height   = 30,
 		
@@ -377,7 +409,7 @@ void window_init() {
 		.gc       = gc,
 		
 		.x        = 50,
-		.y        = 280,
+		.y        = 345,
 		.width    = 30,
 		.height   = 30,
 		
@@ -396,7 +428,7 @@ void window_init() {
 		.gc       = gc,
 		
 		.x        = 90,
-		.y        = 280,
+		.y        = 345,
 		.width    = 30,
 		.height   = 30,
 		
@@ -442,12 +474,12 @@ void window_redraw() {
 	drawStats();
 	
 	SetFG(style.text);
-	// CenterText(170, 280, "Controls");
+	CenterText(170, 330, "Controls");
 	
 	// Draw UI elements.
-	// drawButton(&runButton);
-	// drawButton(&stepButton);
-	// drawButton(&warpButton);
+	drawButton(&runButton);
+	drawButton(&stepButton);
+	drawButton(&warpButton);
 	
 	XFlush(disp);
 }

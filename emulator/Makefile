@@ -3,7 +3,7 @@
 
 CC            = gcc
 LDFLAGS       = -lpthread -lX11
-CFLAGS        = -Isrc -O2 -Wno-unused-result -Wno-format-truncation
+CFLAGS        = -Isrc -O3 -Wno-unused-result -Wno-format-truncation
 CFLAGS_DEBUG  = $(CFLAGS) -ggdb -DDEBUG
 HEADERS       = $(shell find ./src -type f -name "*.h")
 SOURCES       = $(shell find ./src -type f -name "*.c")
