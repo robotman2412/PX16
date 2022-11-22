@@ -302,7 +302,13 @@ static void drawStats() {
 	SetFG(style.text);
 	CenterText(170, 280, "Statistics");
 	
-	
+	SetFG(style.text);
+	DrawTextf(10, 295, "Speed (%s)", running ? "Running" : "Paused");
+	if (warp_speed) {
+		
+	} else {
+		
+	}
 }
 
 
@@ -432,13 +438,16 @@ void window_redraw() {
 	// Draw regs.
 	drawRegfile();
 	
+	// Draw stats.
+	drawStats();
+	
 	SetFG(style.text);
-	CenterText(170, 280, "Controls");
+	// CenterText(170, 280, "Controls");
 	
 	// Draw UI elements.
-	drawButton(&runButton);
-	drawButton(&stepButton);
-	drawButton(&warpButton);
+	// drawButton(&runButton);
+	// drawButton(&stepButton);
+	// drawButton(&warpButton);
 	
 	XFlush(disp);
 }

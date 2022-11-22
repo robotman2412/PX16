@@ -79,7 +79,7 @@ pos term_getsize() {
 
 // Describes the HURTS in human-readable form, 3 significant figures.
 // Output string is up to 10 bytes (including terminator).
-void desc_speed(double hertz, char *to) {
+static void desc_speed(double hertz, char *to) {
 	size_t buf_len = 10;
 	char fmt = ' ';
 	if (hertz >= 750000000) {
