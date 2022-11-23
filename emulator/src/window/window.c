@@ -4,7 +4,7 @@
 #include "main.h"
 #include <stdarg.h>
 
-static Display  *disp;
+Display  *disp;
 static int       screen;
 static Window    win;
 static GC        gc;
@@ -21,6 +21,10 @@ static XFontStruct *font;
 static button_t runButton;
 static button_t stepButton;
 static button_t warpButton;
+
+static bool dirty = true;
+
+static Atom deleteWindowAtom;
 
 void DrawText(Display *disp, Window win, GC gc, int x, int y, const char *str) {
 	while (*str) {
@@ -63,11 +67,33 @@ void CenterText(Display *disp, Window win, GC gc, int x, int y, const char *str)
 	DrawText(disp, win, gc, x - width / 2, y, str);
 }
 
-static int TextWidth(const char *text) {
+void CenterTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt, ...) {
+	va_list vargs;
+	
+	// Calculate mem requirements.
+	va_start(vargs, fmt);
+	int len = vsnprintf(NULL, 0, fmt, vargs);
+	va_end(vargs);
+	
+	// Allocate memory.
+	char *mem = malloc(len+1);
+	if (!mem) return;
+	
+	// Format string.
+	va_start(vargs, fmt);
+	vsnprintf(mem, len+1, fmt, vargs);
+	va_end(vargs);
+	
+	// Draw text.
+	CenterText(disp, win, gc, x, y, mem);
+	free(mem);
+}
+
+int TextWidth(const char *text) {
 	return XTextWidth(font, text, strlen(text));
 }
 
-static int CalcSpacing(int elemWidth, int count, int total) {
+int CalcSpacing(int elemWidth, int count, int total) {
 	if (count > 0)
 		return (total - elemWidth) / (count - 1);
 	else
@@ -102,11 +128,11 @@ void handleButtonEvent(button_t *button, XEvent event) {
 	bool hovered = mouseX >= button->x && mouseX < button->x + button->width
 				&& mouseY >= button->y && mouseY < button->y + button->height;
 	
-	if (event.type == ButtonPress) {
+	if (event.type == ButtonPress && event.xbutton.window == button->win) {
 		button->pressed = hovered;
-	} else if (event.type == MotionNotify) {
+	} else if (event.type == MotionNotify && event.xmotion.window == button->win) {
 		button->pressed &= hovered;
-	} else if (event.type == ButtonRelease) {
+	} else if (event.type == ButtonRelease && event.xbutton.window == button->win) {
 		button->pressed &= hovered;
 		if (button->pressed && button->callback && button->active) {
 			button->callback(button->callback_args);
@@ -407,7 +433,12 @@ void window_init() {
 	XClearWindow(disp, win);
 	XMapRaised(disp, win);
 	
+	// Add window closing atom.
+	deleteWindowAtom = XInternAtom(disp, "WM_DELETE_WINDOW", false);
+	XSetWMProtocols(disp, win, &deleteWindowAtom, 1);
+	
 	debugger_init();
+	debugger_show();
 	
 	// Create UI elements.
 	runButton = (button_t) {
@@ -469,26 +500,28 @@ void window_init() {
 }
 
 void window_main() {
-	bool dirty = true;
-	
 	while (windowOpen) {
-		// if (debuggerOpen) debugger_poll();
-		
 		if (dirty || running) {
 			window_redraw();
 			dirty = false;
 		}
 		
-		while (window_poll()) {
-			dirty = true;
-		}
+		while (XPending(disp) && window_poll());
 		
 		usleep(1000000 / 60);
 	}
 }
 
 void window_destroy() {
+	debugger_close();
 	
+	if (windowOpen) {
+		XUnmapWindow(disp, win);
+		XDestroyWindow(disp, win);
+		XFreeGC(disp, gc);
+	}
+	
+	windowOpen = false;
 }
 
 void window_redraw() {
@@ -514,25 +547,28 @@ void window_redraw() {
 
 bool window_poll() {
 	XEvent msg;
-	if (XCheckWindowEvent(disp, win, -1, &msg)) {
-		if (msg.type == DestroyNotify) {
-			windowOpen = false;
-			printf("Closed i think\n");
-			return true;
-		} else if (msg.type == MotionNotify) {
-			mouseX = msg.xmotion.x;
-			mouseY = msg.xmotion.y;
-		} else if (msg.type == ConfigureNotify) {
-			width  = msg.xconfigure.width;
-			height = msg.xconfigure.height;
+	XNextEvent(disp, &msg);
+	
+	if (msg.type == ClientMessage) {
+		if ((Atom) msg.xclient.data.l[0] == deleteWindowAtom && msg.xclient.window == win) {
+			window_destroy();
+			return false;
 		}
-		
-		handleButtonEvent(&runButton,  msg);
-		handleButtonEvent(&stepButton, msg);
-		handleButtonEvent(&warpButton, msg);
-		
-		// Handlage.
-		return true;
+	} else if (msg.type == MotionNotify && msg.xmotion.window == win) {
+		mouseX = msg.xmotion.x;
+		mouseY = msg.xmotion.y;
+		dirty  = true;
+	} else if (msg.type == ConfigureNotify && msg.xconfigure.window == win) {
+		width  = msg.xconfigure.width;
+		height = msg.xconfigure.height;
+		dirty  = true;
 	}
-	return false;
+	
+	if (debuggerOpen) debugger_event(msg);
+	
+	handleButtonEvent(&runButton,  msg);
+	handleButtonEvent(&stepButton, msg);
+	handleButtonEvent(&warpButton, msg);
+	
+	return true;
 }

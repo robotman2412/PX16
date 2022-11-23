@@ -67,6 +67,21 @@ typedef struct {
 	// Hidden register color.
 	uint32_t regsHidden;
 	
+	// RAM background.
+	uint32_t memoryRAM;
+	// ROM background.
+	uint32_t memoryROM;
+	// MMIO background.
+	uint32_t memoryMMIO;
+	// VRAM background.
+	uint32_t memoryVRAM;
+	// Memory highlight outline color.
+	uint32_t memorySel;
+	// Memory text color.
+	uint32_t memoryText;
+	// Memory address text color.
+	uint32_t memoryAddr;
+	
 	// Default style for buttons.
 	button_styles_t buttons;
 } style_t;
@@ -116,14 +131,26 @@ typedef struct {
 	.regsGeneral = 0xefdf9f, \
 	.regsSpecial = 0xef5f00, \
 	.regsHidden  = 0xafafaf, \
+	.memoryRAM   = 0x3f3f3f, \
+	.memoryROM   = 0x5f2f2f, \
+	.memoryMMIO  = 0x5f5f2f, \
+	.memoryVRAM  = 0x5f5f2f, \
+	.memorySel   = 0xcfcfff, \
+	.memoryText  = 0xcfcfcf, \
+	.memoryAddr  = 0xafafaf, \
 	.buttons     = DEFAULT_BUTTON_STYLES(), \
 }
 
+extern Display *disp;
 extern style_t style;
+
+int TextWidth(const char *text);
+int CalcSpacing(int elemWidth, int count, int total);
 
 void DrawText(Display *disp, Window win, GC gc, int x, int y, const char *str);
 void DrawTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt, ...);
 void CenterText(Display *disp, Window win, GC gc, int x, int y, const char *str);
+void CenterTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt, ...);
 
 void handleButtonEvent(button_t *button, XEvent event);
 void drawButton(button_t *button);

@@ -98,6 +98,13 @@ typedef uint32_t lword;
 typedef uint16_t word;
 
 typedef enum {
+	MEM_TYPE_RAM,
+	MEM_TYPE_ROM,
+	MEM_TYPE_MMIO,
+	MEM_TYPE_VRAM,
+} memtype;
+
+typedef enum {
 	PX_REG_R0,
 	PX_REG_R1,
 	PX_REG_R2,
@@ -138,10 +145,13 @@ struct s_memmap {
 	// Context to memory callbacks.
 	void *mem_ctx;
 	// Read callback.
-	// May not do clock cycle actions if notouchy is false.
+	// May not do read cycle triggers if notouchy is true.
 	word (*mem_read)(core *cpu, memmap *mem, word address, bool notouchy, void *ctx);
 	// Write callback.
+	// May always do write cycle triggers.
 	void (*mem_write)(core *cpu, memmap *mem, word address, word data, void *ctx);
+	// Get type of memory at address.
+	memtype (*mem_gettype)(core *cpu, memmap *mem, word address, void *ctx);
 	
 	// Context to tick callbacks.
 	void *tick_ctx;

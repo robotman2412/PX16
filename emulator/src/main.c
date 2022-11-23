@@ -3,7 +3,6 @@
 #include "runner.h"
 #include "memmap.h"
 #include "window.h"
-#include "term.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -42,37 +41,6 @@ int main(int argc, char **argv) {
 		rolling_avg[i] = 0;
 	}
 	
-	// Add the exit handler.
-	// if (atexit(exithandler)) {
-	// 	fputs("Could not register exit handler; aborting!\n", stderr);
-	// 	return -1;
-	// }
-	
-	// // Critical error signal handlers.
-	// if (signal(SIGINT,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	// if (signal(SIGTSTP, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	// if (signal(SIGILL,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	// if (signal(SIGABRT, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	// if (signal(SIGFPE,  sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	// if (signal(SIGTERM, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	// if (signal(SIGSEGV, sighandler_abort) == SIG_ERR) goto ohcrap_nosig;
-	// goto ohsig;
-	
-	// ohcrap_nosig:
-	// fputs("Could not register signal handler; aborting!\n", stderr);
-	// return -1;
-	
-	// ohsig:
-	// // Non-critical signal handlers.
-	// signal(SIGHUP,  sighandler_exit);
-	// signal(SIGQUIT, sighandler_exit);
-	
-	// Set TTY mode to disable line buffering and echoing.
-	// system("stty cbreak -echo isig");
-	// fputs("\033[?25l\033[?1049h", stdout);
-	// int flags = fcntl(0, F_GETFL, 0);
-	// fcntl(0, F_SETFL, flags | O_NONBLOCK);
-	
 	running = false;
 	badge_mmap_create(&badge, &mem);
 	
@@ -106,76 +74,16 @@ int main(int argc, char **argv) {
 	sim_sethertz(1000000);
 	core_reset(&cpu);
 	
-	// Show.
-	// redraw();
-	
 	// Create runner thread.
 	pthread_create(&runner_handle, NULL, &runner_main, NULL);
 	
 	window_init();
 	window_main();
 	
-	// uint64_t next_time = micros() + TERM_DELAY_US;
-	// // uint64_t prev_time = micros();
-	// // int64_t  too_fast  = 0;
-	// while (!exuent) {
-	// 	if (running) {
-	// 		do {
-	// 			// Check term input.
-	// 			int c;
-	// 			while ((c = fgetc(stdin)) != EOF) {
-	// 				handle_term_input(c);
-	// 			}
-	// 			if (exuent) goto exit;
-				
-	// 			// Sleep for a bit.
-	// 			int64_t sleep_time = next_time - micros();
-	// 			if (sleep_time > 1000) sleep_time = 1000;
-	// 			if (sleep_time > 0) usleep(sleep_time);
-	// 		} while(next_time > micros());
-	// 	} else {
-	// 		while (!running) {
-	// 			// Check term input.
-	// 			int c;
-	// 			while ((c = fgetc(stdin)) != EOF) {
-	// 				handle_term_input(c);
-	// 			}
-	// 			if (exuent) goto exit;
-				
-	// 			// Sleep for a bit.
-	// 			usleep(10000);
-	// 			redraw(&cpu, &mem);
-	// 		}
-	// 		next_time = micros() + TERM_DELAY_US;
-	// 	}
-		
-	// 	// term_setxy(1, 30);
-	// 	// printf(ANSI_DEFAULT ANSI_CLRLN "Tick time: %.1f / %.1f\n", (double) delta / 1000.0, (double) sim_us_delay / 1000.0);
-	// 	// printf(ANSI_DEFAULT ANSI_CLRLN "Tick num:  %ld / %ld", tick_count, sim_ticks);
-		
-	// 	window_poll();
-	// 	// Show.
-	// 	redraw();
-	// }
-	
 	exit:
 	fflush(stdout);
-	while(fgetc(stdin) != EOF);
-	printf("Quit\n");
 	
 	return 0;
-}
-
-
-// Redraws the UI things.
-void redraw() {
-	draw_display(&cpu, &mem);
-	term_setxy(1, 19);
-	draw_stats(&cpu, &mem, warp_speed ? -1 : target_hertz, measured_hertz, sim_total_ticks);
-	term_setxy(1, 22);
-	draw_regs(&cpu, &mem);
-	draw_badge_mmio(&cpu, &mem, &badge);
-	fflush(stdout);
 }
 
 
@@ -222,70 +130,4 @@ double sim_gethertz() {
 // Gets the measured frequency in hertz.
 double sim_measurehertz() {
 	return measured_hertz;
-}
-
-
-// Handles a single char of term input.
-void handle_term_input(char c) {
-	// Make all lowercase.
-	if (c >= 'A' && c <= 'Z') c |= 0x60;
-	
-	if (c == ' ' || c == 'p') {
-		// Play / pause command.
-		running = !running;
-	} else if (c == 'r') {
-		// Reset them CORE.
-		core_reset(&cpu);
-	} else if (c == 'w') {
-		// Warp speed toggle.
-		warp_speed = !warp_speed;
-		running = true;
-	} else if (c == 's') {
-		// Step command.
-		sim_total_ticks += fast_tick(&cpu, &mem);
-		running = false;
-		warp_speed = false;
-	} else if (c == 'q') {
-		// Quit command.
-		term_setxy(1, 1);
-		printf(ANSI_DEFAULT "Quit.");
-		exuent = true;
-	}
-}
-
-
-// Handler for program exit.
-void exithandler() {
-	// Restore TTY to sane.
-	// system("stty sane");
-	// fputs("\033[0m\033[?25h\033[?1049l", stdout);
-}
-
-// Signal handler so as to leave a sane TTY on exit.
-void sighandler_abort(int sig) {
-	// Flush streams.
-	fflush(stderr);
-	fflush(stdout);
-	int flags = fcntl(0, F_GETFL, 0);
-	fcntl(0, F_SETFL, flags | O_NONBLOCK);
-	usleep(10000);
-	while(fgetc(stdin) != EOF);
-	
-	// Set TTY back to sane.
-	exithandler();
-	fflush(stderr);
-	fflush(stdout);
-	
-	// Fart out an error.
-	psignal(sig, "Error");
-	fflush(stderr);
-	fflush(stdout);
-	
-	// Exuent.
-	exit(sig);
-}
-
-// Signal handler so as to request a clean exit.
-void sighandler_exit(int sig) {
-	exuent = true;
 }

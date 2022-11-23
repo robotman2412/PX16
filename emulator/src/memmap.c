@@ -21,13 +21,14 @@ void badge_mmap_create(badge_mmap *mmap, memmap *mem) {
 	};
 	memset(mmap->ram, 0, sizeof(word) * 65536);
 	*mem = (memmap) {
-		.mem_ctx   = mmap,
-		.mem_read  = (word(*)(core*,memmap*,word,bool,void*)) badge_mmap_read,
-		.mem_write = (void(*)(core*,memmap*,word,word,void*)) badge_mmap_write,
-		.tick_ctx  = mmap,
-		.pre_tick  = NULL,
-		.post_tick = (void(*)(core*,memmap*,void*,lword)) badge_mmap_posttick,
-		.reset     = NULL,
+		.mem_ctx     = mmap,
+		.mem_read    = (word(*)(core*,memmap*,word,bool,void*)) badge_mmap_read,
+		.mem_write   = (void(*)(core*,memmap*,word,word,void*)) badge_mmap_write,
+		.mem_gettype = (memtype(*)(core*,memmap*,word,void*)) badge_mmap_gettype,
+		.tick_ctx    = mmap,
+		.pre_tick    = NULL,
+		.post_tick   = (void(*)(core*,memmap*,void*,lword)) badge_mmap_posttick,
+		.reset       = NULL,
 	};
 }
 
@@ -152,6 +153,19 @@ void badge_mmap_write(core *cpu, memmap *mem, word address, word value, badge_mm
 	
 	// Update IRQ and NMI lines.
 	if (irqs_dirty) badge_mmap_update_irq(cpu, mem, mmap);
+}
+
+// Get type of MEM for EL BADGE.
+memtype badge_mmap_gettype(core *cpu, memmap *mem, word address, badge_mmap *mmap) {
+	if (address < mmap->rom_len) {
+		return MEM_TYPE_ROM;
+	} else if (address >= 0xffc0 && address <= 0xffdf) {
+		return MEM_TYPE_VRAM;
+	} else if (address >= 0xffc0) {
+		return MEM_TYPE_MMIO;
+	} else {
+		return MEM_TYPE_RAM;
+	}
 }
 
 // Post TICK (used for timer).
