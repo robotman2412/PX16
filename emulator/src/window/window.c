@@ -1,17 +1,18 @@
 
 #include "window.h"
+#include "debugger.h"
 #include "main.h"
 #include <stdarg.h>
 
-Display  *disp;
-int       screen;
-Window    window;
-GC        gc;
+static Display  *disp;
+static int       screen;
+static Window    win;
+static GC        gc;
 
 style_t style = DEFAULT_STYLE();
 
-int mouseX =   0, mouseY =   0;
-int width  = 340, height = 400;
+static int mouseX =   0, mouseY =   0;
+static int width  = 340, height = 400;
 
 static bool windowOpen = true;
 static const char *fontName = "8x13bold";
@@ -21,29 +22,21 @@ static button_t runButton;
 static button_t stepButton;
 static button_t warpButton;
 
-static void SetFG(uint32_t col) {
-	XSetForeground(disp, gc, col);
-}
-
-static void SetBG(uint32_t col) {
-	XSetBackground(disp, gc, col);
-}
-
-static void DrawText(int x, int y, const char *str) {
+void DrawText(Display *disp, Window win, GC gc, int x, int y, const char *str) {
 	while (*str) {
 		char *ptr = strchr(str, '\n');
 		if (ptr) {
-			XDrawString(disp, window, gc, x, y, str, ptr - str);
+			XDrawString(disp, win, gc, x, y, str, ptr - str);
 			str = ptr + 1;
 			y += font->ascent + font->descent;
 		} else {
-			XDrawString(disp, window, gc, x, y, str, strlen(str));
+			XDrawString(disp, win, gc, x, y, str, strlen(str));
 			return;
 		}
 	}
 }
 
-static void DrawTextf(int x, int y, const char *fmt, ...) {
+void DrawTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt, ...) {
 	va_list vargs;
 	
 	// Calculate mem requirements.
@@ -61,13 +54,13 @@ static void DrawTextf(int x, int y, const char *fmt, ...) {
 	va_end(vargs);
 	
 	// Draw text.
-	DrawText(x, y, mem);
+	DrawText(disp, win, gc, x, y, mem);
 	free(mem);
 }
 
-static void CenterText(int x, int y, const char *str) {
+void CenterText(Display *disp, Window win, GC gc, int x, int y, const char *str) {
 	int width = XTextWidth(font, str, strlen(str));
-	DrawText(x - width / 2, y, str);
+	DrawText(disp, win, gc, x - width / 2, y, str);
 }
 
 static int TextWidth(const char *text) {
@@ -104,7 +97,7 @@ static void buttonCbWarp(void *ignored) {
 
 
 
-static void handleButtonEvent(button_t *button, XEvent event) {
+void handleButtonEvent(button_t *button, XEvent event) {
 	// Determine whether the mouse is over the button.
 	bool hovered = mouseX >= button->x && mouseX < button->x + button->width
 				&& mouseY >= button->y && mouseY < button->y + button->height;
@@ -122,7 +115,7 @@ static void handleButtonEvent(button_t *button, XEvent event) {
 	}
 }
 
-static void drawButton(button_t *button) {
+void drawButton(button_t *button) {
 	// Determine whether the mouse is over the button.
 	bool hovered = mouseX >= button->x && mouseX < button->x + button->width
 				&& mouseY >= button->y && mouseY < button->y + button->height;
@@ -240,7 +233,7 @@ static void drawButton(button_t *button) {
 	}
 }
 
-static void fmtNumber(char *buf, size_t buf_cap, double num, int len) {
+void fmtNumber(char *buf, size_t buf_cap, double num, int len) {
 	char name;
 	double magnitude = num < 0 ? -num : num;
 	
@@ -271,27 +264,27 @@ static void fmtNumber(char *buf, size_t buf_cap, double num, int len) {
 
 
 static void drawDisplay() {
-	SetFG(style.text);
-	CenterText(170, 15, "Matrix Display");
+	XSetForeground(disp, gc, style.text);
+	CenterText(disp, win, gc, 170, 15, "Matrix Display");
 	
 	for (int x = 0; x < 32; x++) {
 		word col = mem.mem_read(&cpu, &mem, 0xffc0 + x, true, mem.mem_ctx);
 		for (int y = 0; y < 16; y++) {
 			bool bit = (col >> y) & 1;
 			XSetForeground(disp, gc, bit ? style.dispOn : style.dispOff);
-			XFillRectangle(disp, window, gc, 10 + x*10, 20+y*10, 10, 10);
+			XFillRectangle(disp, win, gc, 10 + x*10, 20+y*10, 10, 10);
 		}
 	}
 }
 
 static void drawRegfile() {
 	// Clear area behind REGISTRAR.
-	SetFG(style.background);
-	XFillRectangle(disp, window, gc, 10, 180, 320, 90);
+	XSetForeground(disp, gc, style.background);
+	XFillRectangle(disp, win, gc, 10, 180, 320, 90);
 	
 	// HEADRE.
-	SetFG(style.text);
-	CenterText(170, 200, "Registers");
+	XSetForeground(disp, gc, style.text);
+	CenterText(disp, win, gc, 170, 200, "Registers");
 	
 	// Calculate spacing between the thingies.
 	int spacing = CalcSpacing(TextWidth("1234"), 7, 320);
@@ -311,66 +304,66 @@ static void drawRegfile() {
 	
 	for (int x = 0; x < 7; x++) {
 		// Register names.
-		SetFG(x < 4 ? style.regsGeneral : style.regsSpecial);
-		DrawText (10 + x * spacing, 215, regNames[x]);
+		XSetForeground(disp, gc, x < 4 ? style.regsGeneral : style.regsSpecial);
+		DrawText (disp, win, gc, 10 + x * spacing, 215, regNames[x]);
 		// Register values.
-		SetFG(style.regsValue);
-		DrawTextf(10 + x * spacing, 230, "%04X", cpu.regfile[x]);
+		XSetForeground(disp, gc, style.regsValue);
+		DrawTextf(disp, win, gc, 10 + x * spacing, 230, "%04X", cpu.regfile[x]);
 		
 		// Hidden reg names.
-		SetFG(style.regsHidden);
-		DrawText (10 + x * spacing, 245, hregNames[x]);
+		XSetForeground(disp, gc, style.regsHidden);
+		DrawText (disp, win, gc, 10 + x * spacing, 245, hregNames[x]);
 		// Hidden reg values.
-		SetFG(style.regsValue);
-		DrawTextf(10 + x * spacing, 260, "%04X", hregs[x]);
+		XSetForeground(disp, gc, style.regsValue);
+		DrawTextf(disp, win, gc, 10 + x * spacing, 260, "%04X", hregs[x]);
 	}
 }
 
 static void drawStats() {
 	char tmp[32];
-	SetFG(style.text);
-	CenterText(170, 280, "Statistics");
+	XSetForeground(disp, gc, style.text);
+	CenterText(disp, win, gc, 170, 280, "Statistics");
 	
 	// Clear background.
-	SetFG(style.background);
-	XFillRectangle(disp, window, gc, 10, 295, 320, 25);
+	XSetForeground(disp, gc, style.background);
+	XFillRectangle(disp, win, gc, 10, 295, 320, 25);
 	
 	
 	// Draw speed.
-	SetFG(style.text);
-	DrawText(10, 295, "Speed");
+	XSetForeground(disp, gc, style.text);
+	DrawText(disp, win, gc, 10, 295, "Speed");
 	
-	SetFG(style.regsValue);
+	XSetForeground(disp, gc, style.regsValue);
 	fmtNumber(tmp, sizeof(tmp), measured_hertz, 5);
-	DrawTextf(10, 310, "%sHz", tmp);
+	DrawTextf(disp, win, gc, 10, 310, "%sHz", tmp);
 	
 	
 	// Draw cycles.
-	SetFG(style.text);
-	DrawText(105, 295, "Ticks");
+	XSetForeground(disp, gc, style.text);
+	DrawText(disp, win, gc, 105, 295, "Ticks");
 	
-	SetFG(style.regsValue);
+	XSetForeground(disp, gc, style.regsValue);
 	fmtNumber(tmp, sizeof(tmp), sim_total_ticks, 6);
-	DrawText(105, 310, tmp);
+	DrawText(disp, win, gc, 105, 310, tmp);
 	
 	// Draw INSN count.
-	SetFG(style.text);
-	DrawText(201, 295, "Insns");
+	XSetForeground(disp, gc, style.text);
+	DrawText(disp, win, gc, 201, 295, "Insns");
 	
-	SetFG(style.regsValue);
+	XSetForeground(disp, gc, style.regsValue);
 	fmtNumber(tmp, sizeof(tmp), cpu.insn_count, 6);
-	DrawText(201, 310, tmp);
+	DrawText(disp, win, gc, 201, 310, tmp);
 	
 	// Draw IPC.
-	SetFG(style.text);
-	DrawText(298, 295, "IPC");
+	XSetForeground(disp, gc, style.text);
+	DrawText(disp, win, gc, 298, 295, "IPC");
 	
-	SetFG(style.regsValue);
+	XSetForeground(disp, gc, style.regsValue);
 	if (sim_total_ticks) {
 		double ipc = cpu.insn_count / (double) sim_total_ticks;
-		DrawTextf(298, 310, "%4.2f", ipc);
+		DrawTextf(disp, win, gc, 298, 310, "%4.2f", ipc);
 	} else {
-		DrawText(298, 310, "N/A");
+		DrawText(disp, win, gc, 298, 310, "N/A");
 	}
 }
 
@@ -381,26 +374,26 @@ void window_init() {
 	disp   = XOpenDisplay(NULL);
 	screen = DefaultScreen(disp);
 	
-	// Once the display is initialized, create the window.
-	// This window will be have be 200 pixels across and 300 down.
+	// Once the display is initialized, create the win.
+	// This win will be have be 200 pixels across and 300 down.
 	// It will have the foreground white and background black.
-	window = XCreateSimpleWindow(disp, DefaultRootWindow(disp), 0, 0, width, height, 5, 0xffffff, style.background);
+	win = XCreateSimpleWindow(disp, DefaultRootWindow(disp), 0, 0, width, height, 5, 0xffffff, style.background);
 	
-	// here is where some properties of the window can be set.
-	// The third and fourth items indicate the name which appears at the top of the window and the name of the minimized window respectively.
-	XSetStandardProperties(disp, window, "Pixie 16", "pixie.png", None, NULL, 0, NULL);
+	// here is where some properties of the win can be set.
+	// The third and fourth items indicate the name which appears at the top of the win and the name of the minimized win respectively.
+	XSetStandardProperties(disp, win, "Pixie 16", "pixie.png", None, NULL, 0, NULL);
 	
 	// this routine determines which types of input are allowed in the input.
 	// see the appropriate section for details...
-	XSelectInput(disp, window, ExposureMask | ButtonPressMask | ButtonReleaseMask | StructureNotifyMask | PointerMotionMask);
+	XSelectInput(disp, win, ExposureMask | ButtonPressMask | ButtonReleaseMask | StructureNotifyMask | PointerMotionMask);
 	
 	// create the Graphics Context
-	gc = XCreateGC(disp, window, 0, 0);
+	gc = XCreateGC(disp, win, 0, 0);
 	
 	font = XLoadQueryFont(disp, fontName);
 	if (font) XSetFont(disp, gc, font->fid);
 	
-	// Set fixed window size.
+	// Set fixed win size.
 	XSizeHints hints = (XSizeHints) {
 		.flags      = PMinSize | PMaxSize,
 		.min_width  = width,
@@ -408,16 +401,18 @@ void window_init() {
 		.max_width  = width,
 		.max_height = height,
 	};
-	XSetWMNormalHints(disp, window, &hints);
+	XSetWMNormalHints(disp, win, &hints);
 	
-	// clear the window and bring it on top of the other windows
-	XClearWindow(disp, window);
-	XMapRaised(disp, window);
+	// clear the win and bring it on top of the other windows
+	XClearWindow(disp, win);
+	XMapRaised(disp, win);
+	
+	debugger_init();
 	
 	// Create UI elements.
 	runButton = (button_t) {
 		.disp     = disp,
-		.win      = window,
+		.win      = win,
 		.gc       = gc,
 		
 		.x        = 10,
@@ -436,7 +431,7 @@ void window_init() {
 	
 	stepButton = (button_t) {
 		.disp     = disp,
-		.win      = window,
+		.win      = win,
 		.gc       = gc,
 		
 		.x        = 50,
@@ -455,7 +450,7 @@ void window_init() {
 	
 	warpButton = (button_t) {
 		.disp     = disp,
-		.win      = window,
+		.win      = win,
 		.gc       = gc,
 		
 		.x        = 90,
@@ -477,6 +472,8 @@ void window_main() {
 	bool dirty = true;
 	
 	while (windowOpen) {
+		// if (debuggerOpen) debugger_poll();
+		
 		if (dirty || running) {
 			window_redraw();
 			dirty = false;
@@ -504,8 +501,8 @@ void window_redraw() {
 	// Draw stats.
 	drawStats();
 	
-	SetFG(style.text);
-	CenterText(170, 330, "Controls");
+	XSetForeground(disp, gc, style.text);
+	CenterText(disp, win, gc, 170, 330, "Controls");
 	
 	// Draw UI elements.
 	drawButton(&runButton);
@@ -517,8 +514,12 @@ void window_redraw() {
 
 bool window_poll() {
 	XEvent msg;
-	if (XCheckWindowEvent(disp, window, -1, &msg)) {
-		if (msg.type == MotionNotify) {
+	if (XCheckWindowEvent(disp, win, -1, &msg)) {
+		if (msg.type == DestroyNotify) {
+			windowOpen = false;
+			printf("Closed i think\n");
+			return true;
+		} else if (msg.type == MotionNotify) {
 			mouseX = msg.xmotion.x;
 			mouseY = msg.xmotion.y;
 		} else if (msg.type == ConfigureNotify) {

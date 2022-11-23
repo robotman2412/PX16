@@ -121,6 +121,14 @@ typedef struct {
 
 extern style_t style;
 
+void DrawText(Display *disp, Window win, GC gc, int x, int y, const char *str);
+void DrawTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt, ...);
+void CenterText(Display *disp, Window win, GC gc, int x, int y, const char *str);
+
+void handleButtonEvent(button_t *button, XEvent event);
+void drawButton(button_t *button);
+void fmtNumber(char *buf, size_t buf_cap, double num, int len);
+
 void window_init();
 void window_main();
 void window_destroy();
