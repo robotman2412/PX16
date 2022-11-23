@@ -240,6 +240,34 @@ static void drawButton(button_t *button) {
 	}
 }
 
+static void fmtNumber(char *buf, size_t buf_cap, double num, int len) {
+	char name;
+	double magnitude = num < 0 ? -num : num;
+	
+	if (magnitude >= 750000000000000) {
+		name = 'P';
+		num /= 1000000000000000;
+	} else if (magnitude >= 750000000000) {
+		name = 'T';
+		num /= 1000000000000;
+	} else if (magnitude >= 750000000) {
+		name = 'G';
+		num /= 1000000000;
+	} else if (magnitude >= 750000) {
+		name = 'M';
+		num /= 1000000;
+	} else if (magnitude >= 750) {
+		name = 'K';
+		num /= 1000;
+	} else {
+		snprintf(buf, buf_cap, "%*.0f ", len, num);
+		return;
+	}
+	
+	int post = 1;
+	snprintf(buf, buf_cap, "%*.*f%c", len, post, num, name);
+}
+
 
 
 static void drawDisplay() {
@@ -299,47 +327,50 @@ static void drawRegfile() {
 }
 
 static void drawStats() {
+	char tmp[32];
 	SetFG(style.text);
 	CenterText(170, 280, "Statistics");
 	
 	// Clear background.
 	SetFG(style.background);
-	XFillRectangle(disp, window, gc, 10, 295, 310, 25);
+	XFillRectangle(disp, window, gc, 10, 295, 320, 25);
 	
 	
 	// Draw speed.
 	SetFG(style.text);
 	DrawText(10, 295, "Speed");
 	
-	double measured = measured_hertz;
-	const char *measured_unit = "Hz ";
-	if (measured_hertz >= 750000000) {
-		measured_unit = "GHz";
-		measured     /= 1000000000;
-	} else if (measured_hertz >= 750000) {
-		measured_unit = "MHz";
-		measured     /= 1000000;
-	} else if (measured_hertz >= 750) {
-		measured_unit = "KHz";
-		measured     /= 1000;
-	}
-	
 	SetFG(style.regsValue);
-	DrawTextf(10, 310, "%5.1f%s", measured, measured_unit);
+	fmtNumber(tmp, sizeof(tmp), measured_hertz, 5);
+	DrawTextf(10, 310, "%sHz", tmp);
 	
 	
 	// Draw cycles.
 	SetFG(style.text);
-	DrawText(80, 295, "Ticks");
+	DrawText(105, 295, "Ticks");
 	
-	if (sim_total_ticks >= 750000000) {
-		DrawTextf(80, 310, "%6.*fB", 2, sim_total_ticks / 1000000000.0);
-	} else if (sim_total_ticks >= 750000) {
-		DrawTextf(80, 310, "%6.2fM", sim_total_ticks / 1000000.0);
-	} else if (sim_total_ticks >= 1000) {
-		DrawTextf(80, 310, "%6.2fK", sim_total_ticks / 1000.0);
+	SetFG(style.regsValue);
+	fmtNumber(tmp, sizeof(tmp), sim_total_ticks, 6);
+	DrawText(105, 310, tmp);
+	
+	// Draw INSN count.
+	SetFG(style.text);
+	DrawText(201, 295, "Insns");
+	
+	SetFG(style.regsValue);
+	fmtNumber(tmp, sizeof(tmp), cpu.insn_count, 6);
+	DrawText(201, 310, tmp);
+	
+	// Draw IPC.
+	SetFG(style.text);
+	DrawText(298, 295, "IPC");
+	
+	SetFG(style.regsValue);
+	if (sim_total_ticks) {
+		double ipc = cpu.insn_count / (double) sim_total_ticks;
+		DrawTextf(298, 310, "%4.2f", ipc);
 	} else {
-		DrawTextf(80, 310, "%6llu ", sim_total_ticks);
+		DrawText(298, 310, "N/A");
 	}
 }
 
