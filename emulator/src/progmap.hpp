@@ -20,8 +20,17 @@ class SourceLine {
 };
 
 class SourceFile {
+	private:
+		void init(std::string path);
+		
 	public:
-		FILE *fd;
+		SourceFile();
+		SourceFile(std::string cwdPath, std::string path);
+		SourceFile(std::string path);
+		SourceFile(const char *cwdPath, const char *path);
+		SourceFile(const char *path);
+		
+		std::string realPath;
 		std::vector<SourceLine> lines;
 };
 
