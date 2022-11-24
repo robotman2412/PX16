@@ -11,6 +11,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
+#include <X11/XKBlib.h>
 
 
 
@@ -86,6 +87,9 @@ typedef struct {
 	button_styles_t buttons;
 } style_t;
 
+extern const char *style_names[];
+extern const size_t n_style_names;
+
 typedef struct {
 	// The display that this button is on.
 	Display *disp;
@@ -93,11 +97,6 @@ typedef struct {
 	Window   win;
 	// The graphics context for this button to draw to.
 	GC       gc;
-	
-	// The art to put on this button.
-	button_art_t art;
-	// The text to put on this button, if any.
-	const char  *text;
 	
 	// Button position.
 	int          x, y;
@@ -108,6 +107,11 @@ typedef struct {
 	bool         active;
 	// Whether a button press has started.
 	bool         pressed;
+	
+	// The art to put on this button.
+	button_art_t art;
+	// The text to put on this button, if any.
+	const char  *text;
 	
 	// Callback for when button is pressed.
 	button_cb_t  callback;

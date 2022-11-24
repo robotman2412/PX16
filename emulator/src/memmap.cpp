@@ -10,14 +10,14 @@ void badge_mmap_create(badge_mmap *mmap, memmap *mem) {
 	*mmap = (badge_mmap) {
 		.rom          = NULL,
 		.rom_len      = 0,
-		.ram          = malloc(sizeof(word) * 65536),
+		.ram          = (word *) malloc(sizeof(word) * 65536),
 		.timer0_en    = false,
 		.timer0_irq   = false,
 		.timer0_nmi   = false,
+		.timer0_trig  = false,
 		.timer0_value = 0,
 		.timer0_int   = 0,
 		.timer0_limit = 0,
-		.timer0_trig  = false,
 	};
 	memset(mmap->ram, 0, sizeof(word) * 65536);
 	*mem = (memmap) {
@@ -53,7 +53,7 @@ void badge_load_rom(badge_mmap *mmap, char *filename) {
 	}
 	
 	fseek(fd, 0, SEEK_SET);
-	word *rom = malloc(len);
+	word *rom = (word *) malloc(len);
 	for (word i = 0; i < len / 2; i++) {
 		uint8_t tmp[2];
 		fread(tmp, 1, 2, fd);
@@ -96,6 +96,9 @@ word badge_mmap_read(core *cpu, memmap *mem, word address, bool notouchy, badge_
 		} else if (address == 0xfff8) {
 			// Timer 0 low.
 			return mmap->timer0_limit;
+		} else {
+			// Undefined MMIO.
+			return 0;
 		}
 	} else if (address < mmap->rom_len) {
 		return mmap->rom[address];

@@ -3,12 +3,12 @@
 
 CC            = gcc
 LDFLAGS       = -lpthread -lX11 -lm
-CFLAGS        = -Isrc -Isrc/window -O3 -Wno-unused-result -Wno-format-truncation
+CFLAGS        = -Isrc -Isrc/window -O3 -Wno-unused-result -Wno-format-truncation -Wno-narrowing
 CFLAGS_DEBUG  = $(CFLAGS) -ggdb -DDEBUG
 HEADERS       = $(shell find ./src -type f -name "*.h")
-SOURCES       = $(shell find ./src -type f -name "*.c")
-OBJECTS       = $(shell find ./src -type f -name "*.c" -printf '%p.o\n' | sed -e 's/src/build/')
-OBJECTS_DEBUG = $(shell find ./src -type f -name "*.c" -printf '%p.debug.o\n' | sed -e 's/src/build/')
+SOURCES       = $(shell find ./src -type f -name "*.c" -o -name "*.cpp")
+OBJECTS       = $(shell find ./src -type f -name "*.c" -o -name "*.cpp" -printf '%p.o\n' | sed -e 's/src/build/')
+OBJECTS_DEBUG = $(shell find ./src -type f -name "*.c" -o -name "*.cpp" -printf '%p.debug.o\n' | sed -e 's/src/build/')
 
 .PHONY: all debug run clean
 

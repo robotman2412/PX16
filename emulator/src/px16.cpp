@@ -31,11 +31,11 @@ word pack_insn(instr insn) {
  __attribute__((hot))
 instr unpack_insn(word packed) {
 	return (instr) {
-		.y = (packed & 0x8000) >> 15,
-		.x = (packed & 0x7000) >> 12,
-		.b = (packed & 0x0e00) >>  9,
-		.a = (packed & 0x01c0) >>  6,
-		.o = (packed & 0x003f),
+		.y = (uint8_t) (packed & 0x8000) >> 15,
+		.x = (uint8_t) (packed & 0x7000) >> 12,
+		.b = (uint8_t) (packed & 0x0e00) >>  9,
+		.a = (uint8_t) (packed & 0x01c0) >>  6,
+		.o = (uint8_t) (packed & 0x003f),
 	};
 }
 
@@ -100,7 +100,7 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 				: (opcode != OP_ADD) ^ math1;
 	opcode &= ~OFFS_CC;
 	if (math1) b = 0;
-	lword res;
+	lword res, sres;
 	bool scout = false;
 	// Calculate some CRAP.
 	switch (opcode) {
@@ -110,7 +110,7 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 		case (OP_SUB):
 		case (OP_CMP):
 			res = cin + (word) a + (word) ~b;
-			lword sres = cin + (lword) (a ^ 0x8000) + (lword) (b ^ 0x7fff);
+			sres = cin + (lword) (a ^ 0x8000) + (lword) (b ^ 0x7fff);
 			scout = sres & 0x10000;
 			break;
 		case (OP_AND):
@@ -127,6 +127,8 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 			break;
 		case (OP_SHR & ~OFFS_MATH1):
 			res = (a >> 1) | ((lword) (a & 1) << 16) | (cin << 15);
+			break;
+		default:
 			break;
 	}
 	// Set PF.
@@ -260,7 +262,7 @@ lword fast_tick(core *cpu, memmap *mem) {
 	// Check for addr stage.
 	if (run.x != PX_ADDR_IMM) {
 		// Determine register for memory access.
-		reg regno = run.y ? run.b : run.a;
+		reg regno = (reg) (run.y ? run.b : run.a);
 		word regval = regno != PX_REG_IMM ? cpu->regfile[regno]
 					: (run.y ? cpu->imm1 : cpu->imm0);
 		// Determine address.

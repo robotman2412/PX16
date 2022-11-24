@@ -3,6 +3,26 @@
 #include "debugger.h"
 #include "main.h"
 #include <stdarg.h>
+#include <stdlib.h>
+
+const char *style_names[] = {
+	"background",
+	"dispOff",
+	"dispOn",
+	"text",
+	"regsValue",
+	"regsGeneral",
+	"regsSpecial",
+	"regsHidden",
+	"memoryRAM",
+	"memoryROM",
+	"memoryMMIO",
+	"memoryVRAM",
+	"memorySel",
+	"memoryText",
+	"memoryAddr",
+};
+const size_t n_style_names = sizeof(style_names) / sizeof(const char *);
 
 Display  *disp;
 static int       screen;
@@ -27,15 +47,53 @@ static bool dirty = true;
 static Atom deleteWindowAtom;
 
 void DrawText(Display *disp, Window win, GC gc, int x, int y, const char *str) {
+	int dx = 0, dy = 0;
 	while (*str) {
-		char *ptr = strchr(str, '\n');
-		if (ptr) {
-			XDrawString(disp, win, gc, x, y, str, ptr - str);
-			str = ptr + 1;
-			y += font->ascent + font->descent;
-		} else {
-			XDrawString(disp, win, gc, x, y, str, strlen(str));
+		// Find SPECIALCHARS.
+		const char *lf  = strchr(str, '\n');
+		const char *esc = strchr(str, '`');
+		if (esc && lf && esc < lf) lf = NULL;
+		if (esc && lf && esc > lf) esc = NULL;
+		const char *min = (const char *) ((size_t) lf + (size_t) esc);
+		
+		if (min && min > str) {
+			// dRAW the TEXT.
+			XDrawString(disp, win, gc, x + dx, y + dy, str, min - str);
+			dx += XTextWidth(font, str, min - str);
+		} else if (!min) {
+			// Final TEXT!
+			XDrawString(disp, win, gc, x + dx, y + dy, str, strlen(str));
 			return;
+		}
+		
+		if (lf) {
+			// lINE fEED lOGiC.
+			str ++;
+			dx = 0;
+			dy += font->ascent + font->descent;
+			
+		} else if (esc) {
+			// COLOR CODE LOGIC.
+			str ++;
+			esc ++;
+			const char *end = strchr(str, '`');
+			if (!end) return;
+			
+			if (*esc == '#') {
+				// Color CODE device.
+				XSetForeground(disp, gc, strtol(esc+1, NULL, 16));
+				
+			} else {
+				// Color ID device.
+				uint32_t *ptr = (uint32_t *) &style;
+				for (size_t i = 0; i < n_style_names; i++) {
+					if (!strncmp(esc, style_names[i], end - esc)) {
+						XSetForeground(disp, gc, ptr[i]);
+					}
+				}
+			}
+			
+			str = end + 1;
 		}
 	}
 }
@@ -49,7 +107,7 @@ void DrawTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt, 
 	va_end(vargs);
 	
 	// Allocate memory.
-	char *mem = malloc(len+1);
+	char *mem = (char *) malloc(len+1);
 	if (!mem) return;
 	
 	// Format string.
@@ -63,7 +121,7 @@ void DrawTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt, 
 }
 
 void CenterText(Display *disp, Window win, GC gc, int x, int y, const char *str) {
-	int width = XTextWidth(font, str, strlen(str));
+	int width = TextWidth(str);
 	DrawText(disp, win, gc, x - width / 2, y, str);
 }
 
@@ -76,7 +134,7 @@ void CenterTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt
 	va_end(vargs);
 	
 	// Allocate memory.
-	char *mem = malloc(len+1);
+	char *mem = (char *) malloc(len+1);
 	if (!mem) return;
 	
 	// Format string.
@@ -90,7 +148,25 @@ void CenterTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt
 }
 
 int TextWidth(const char *text) {
-	return XTextWidth(font, text, strlen(text));
+	char *tmp = (char *) malloc(strlen(text) + 1);
+	*tmp = 0;
+	
+	// Do not count teh `color codes`.
+	while (*text) {
+		if (*text != '`') {
+			strncat(tmp, text, 1);
+			text ++;
+		} else {
+			do {
+				text ++;
+			} while (*text && *text != '`');
+			text ++;
+		}
+	}
+	
+	size_t len = XTextWidth(font, tmp, strlen(tmp));
+	free(tmp);
+	return len;
 }
 
 int CalcSpacing(int elemWidth, int count, int total) {
@@ -501,6 +577,8 @@ void window_init() {
 
 void window_main() {
 	while (windowOpen) {
+		debugger_loop();
+		
 		if (dirty || running) {
 			window_redraw();
 			dirty = false;
