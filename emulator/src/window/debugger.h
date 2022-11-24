@@ -6,13 +6,6 @@
 #include <px16.h>
 #include <stdio.h>
 
-typedef struct {
-	char *filename;
-	word   address;
-	int    x0, y0;
-	int    x1, y1;
-} pos;
-
 extern bool debuggerOpen;
 
 void debugger_init();
