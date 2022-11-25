@@ -8,6 +8,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xos.h>
+#include <X11/XKBlib.h>
+
 
 
 typedef void (*button_cb_t)(void *args);
@@ -86,6 +91,13 @@ extern const char *style_names[];
 extern const size_t n_style_names;
 
 typedef struct {
+	// The display that this button is on.
+	Display *disp;
+	// The window that this button is on.
+	Window   win;
+	// The graphics context for this button to draw to.
+	GC       gc;
+	
 	// Button position.
 	int          x, y;
 	// Button size.
@@ -133,12 +145,18 @@ typedef struct {
 	.buttons     = DEFAULT_BUTTON_STYLES(), \
 }
 
+extern Display *disp;
 extern style_t style;
 
 int TextWidth(const char *text);
 int CalcSpacing(int elemWidth, int count, int total);
 
-void handleButtonEvent(button_t *button);
+void DrawText(Display *disp, Window win, GC gc, int x, int y, const char *str);
+void DrawTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt, ...);
+void CenterText(Display *disp, Window win, GC gc, int x, int y, const char *str);
+void CenterTextf(Display *disp, Window win, GC gc, int x, int y, const char *fmt, ...);
+
+void handleButtonEvent(button_t *button, XEvent event);
 void drawButton(button_t *button);
 void fmtNumber(char *buf, size_t buf_cap, double num, int len);
 

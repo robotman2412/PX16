@@ -2,14 +2,80 @@
 #include <progmap.hpp>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
-static std::string getThing(std::fstream &fd) {
+// Skips empty lines.
+static std::string readLine(std::ifstream &fd) {
+	// Stream to store data in to.
+	std::string buf;
+	size_t cap = 0;
 	
+	// Iterate CharAcTerS.
+	int c;
+	while (1) {
+		c = fd.get();
+		
+		if (c == EOF) {
+			// When EOF, fin.
+			break;
+			
+		} else if (c == '\n' || c == '\r') {
+			// Consome LF after CR.
+			if (c == '\r' && fd.peek() == '\n') fd.get();
+			
+			// When not empty, break.
+			if (cap) break;
+			
+		} else {
+			// Add remainder to the buffer.
+			buf += (char) c;
+			cap ++;
+		}
+	}
+	
+	return buf;
+}
+
+static std::string readWord(std::stringstream &fd) {
+	// Stream to store data in to.
+	std::string buf;
+	
+	// Iterate CharAcTerS.
+	int c;
+	while (1) {
+		c = fd.get();
+		
+		if (c == EOF) {
+			// When EOF, fin.
+			break;
+			
+		} else if (c == '\\') {
+			// Literally interpres the CHARACTER.
+			buf += (char) fd.get();
+			
+		} else if (c == ' ' || c == '\t') {
+			// Consume remaining whitespace.
+			while (fd.peek() == ' ' || fd.peek() == '\t') fd.get();
+			break;
+			
+		} else {
+			// Add remainder to the buffer.
+			buf += (char) c;
+		}
+	}
+	
+	// Get string from buffer.
+	return buf;
 }
 
 void SourceFile::init(std::string path) {
-	std::fstream fd(path, std::fstream::in);
+	std::ifstream fd;
+	fd.open(path);
 	
+	std::string line;
+	while ((line = readLine(fd)).size()){
+		std::cout << "Read line: " << line << std::endl;
+	}
 }
 
 SourceFile::SourceFile() {}

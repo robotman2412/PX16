@@ -13,6 +13,8 @@
 #include <ctype.h>
 #include <string.h>
 
+#include <progmap.hpp>
+
 double   measured_hertz;
 double   target_hertz;
 uint64_t sim_us_delay;

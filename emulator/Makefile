@@ -2,8 +2,8 @@
 .SUFFIXES:
 
 CC            = gcc
-LDFLAGS       = -lpthread -lX11 -lm
-CFLAGS        = -Isrc -Isrc/window -O3 -Wno-unused-result -Wno-format-truncation -Wno-narrowing
+LDFLAGS       = -lpthread -lX11 -lm -lstdc++ $(shell pkg-config --libs gtk+-3.0) $(shell pkg-config --libs gtkmm-3.0)
+CFLAGS        = -Isrc -Isrc/window -O3 -Wno-unused-result -Wno-format-truncation -Wno-narrowing $(shell pkg-config --cflags gtk+-3.0) $(shell pkg-config --cflags gtkmm-3.0)
 CFLAGS_DEBUG  = $(CFLAGS) -ggdb -DDEBUG
 HEADERS       = $(shell find ./src -type f -name "*.h")
 SOURCES       = $(shell find ./src -type f -name "*.c" -o -name "*.cpp")
@@ -19,18 +19,22 @@ debug: ./build/debug.o
 	cp $< ./pxe
 
 ./build/main.o: $(OBJECTS)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	@echo LD $@
+	@$(CC) -o $@ $^ $(LDFLAGS)
 
 ./build/%.o: ./src/% $(HEADERS) Makefile
 	@mkdir -p $(shell dirname $@)
-	$(CC) -c -o $@ $< $(CFLAGS)
+	@echo CC $<
+	@$(CC) -c -o $@ $< $(CFLAGS)
 
 ./build/debug.o: $(OBJECTS_DEBUG)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	@echo LD $@
+	@$(CC) -o $@ $^ $(LDFLAGS)
 
 ./build/%.debug.o: ./src/% $(HEADERS) Makefile
 	@mkdir -p $(shell dirname $@)
-	$(CC) -c -o $@ $< $(CFLAGS_DEBUG)
+	@echo CC $<
+	@$(CC) -c -o $@ $< $(CFLAGS_DEBUG)
 
 run: ./pxe
 	./pxe
