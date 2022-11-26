@@ -121,8 +121,8 @@ typedef struct {
 	.text        = 0xefefef, \
 	.regsValue   = 0x4f7fff, \
 	.regsGeneral = 0xefdf9f, \
-	.regsSpecial = 0xef5f00, \
-	.regsHidden  = 0xafafaf, \
+	.regsSpecial = 0xdf5fff, \
+	.regsHidden  = 0xcf3f3f, \
 	.memoryRAM   = 0x3f3f3f, \
 	.memoryROM   = 0x5f2f2f, \
 	.memoryMMIO  = 0x5f5f2f, \
