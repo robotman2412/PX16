@@ -7,14 +7,17 @@
 #include <cmath>
 
 #include <gtkmm.h>
-#include <gtkmm/application.h>
-#include <gtkmm/button.h>
-#include <gtkmm/drawingarea.h>
-#include <gtkmm/grid.h>
-#include <gtkmm/label.h>
-#include <gtkmm/window.h>
+// #include <gtkmm/application.h>
+// #include <gtkmm/button.h>
+// #include <gtkmm/box.h>
+// #include <gtkmm/drawingarea.h>
+// #include <gtkmm/grid.h>
+// #include <gtkmm/label.h>
+// #include <gtkmm/window.h>
 
 #include <pthread.h>
+
+#include <stdexcept>
 
 
 
@@ -28,7 +31,7 @@ static std::string format(const char *fmt, ...) {
 	
 	// Allocate memory.
 	char *mem = (char *) malloc(len+1);
-	if (!mem) return std::string("(null)");
+	if (!mem) throw std::bad_alloc();
 	
 	// Format string.
 	va_start(vargs, fmt);
@@ -81,7 +84,7 @@ bool Display::on_draw(const Cairo::RefPtr<Cairo::Context>& cr) {
 		size_adjusted = true;
 	}
 	
-	// OBTAIN DIMENSIONS.
+	// Get drawable width and height.
 	Gtk::Allocation allocation = get_allocation();
 	const int width  = allocation.get_width();
 	const int height = allocation.get_height();
@@ -102,7 +105,7 @@ bool Display::on_draw(const Cairo::RefPtr<Cairo::Context>& cr) {
 		
 		for (int y = 0; y < 16; y++) {
 			// Determine bit value.
-			bool bit = (x ^ y) & 1; //(value >> y) & 1;
+			bool bit = (value >> y) & 1;
 			
 			// Draw a RECTANGLE.
 			cr->rectangle(x, y, 1, 1);
@@ -129,10 +132,15 @@ class MainWindow : public Gtk::Window {
 		bool update();
 		void updateRegs();
 		
-		// The timer used to continually update stuff.
+		// The timer used to continually update registers, display, etc.
 		sigc::connection mainTimer;
-		// The main layout containing grid.
-		Gtk::Grid mainGrid;
+		
+		// The main container for all the things.
+		Gtk::Box  mainContainer;
+		// The grid that contains the CPU info, registers, display, etc.
+		Gtk::Grid cpuGrid;
+		// The grid that contains the controls, statistics, etc.
+		Gtk::Grid ctlGrid;
 		
 		// Label: Matrix Display
 		Gtk::Label displayLabel;
@@ -149,6 +157,12 @@ class MainWindow : public Gtk::Window {
 		Gtk::Label regsNames[7][2];
 		// Register values.
 		Gtk::Label regsValues[7][2];
+		
+		// Label: Controls.
+		Gtk::Label controlsLabel;
+		
+		// Button: Run/stop.
+		Gtk::Button runStop;
 };
 
 MainWindow::MainWindow() {
@@ -158,12 +172,12 @@ MainWindow::MainWindow() {
 	
 	// Add the display stuff.
 	displayLabel.set_markup("Matrix Display");
-	mainGrid.attach(displayLabel, 0, 0);
-	mainGrid.attach(display, 0, 1);
+	cpuGrid.attach(displayLabel, 0, 0);
+	cpuGrid.attach(display, 0, 1);
 	
 	// Add the registers stuff.
 	regsLabel.set_markup("Registers");
-	mainGrid.attach(regsLabel, 0, 4);
+	cpuGrid.attach(regsLabel, 0, 4);
 	updateRegs();
 	
 	// Register names.
@@ -187,20 +201,42 @@ MainWindow::MainWindow() {
 			regsGrid.attach(regsValues[x][y], x, y*2+1);
 		}
 	}
-	mainGrid.attach(regsGrid, 0, 5);
+	cpuGrid.attach(regsGrid, 0, 5);
+	
+	// Controls label.
+	controlsLabel = Gtk::Label("Controls");
+	ctlGrid.attach(controlsLabel, 0, 0);
+	
+	// Run/Stop button.
+	runStop = Gtk::Button("Run");
+	runStop.set_image_from_icon_name("media-playback-start");
+	runStop.set_always_show_image(true);
+	runStop.signal_clicked().connect([this]() -> void {
+		running = !running;
+		runStop.set_label(running ? "Stop" : "Run");
+		runStop.set_image_from_icon_name(running ? "media-playback-stop" : "media-playback-start");
+	});
+	ctlGrid.attach(runStop, 0, 1);
+	
+	// Warp speed button.
 	
 	// Show everything.
-	add(mainGrid);
-	mainGrid.show_all();
+	mainContainer.pack_start(cpuGrid);
+	mainContainer.pack_end(ctlGrid);
+	ctlGrid.set_margin_left(10);
+	add(mainContainer);
+	show_all();
 	
 	// Set main timer.
 	mainTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &MainWindow::update), 16);
+	set_resizable(false);
 }
 
 MainWindow::~MainWindow() {}
 
 bool MainWindow::update() {
 	updateRegs();
+	display.queue_draw();
 	return true;
 }
 
