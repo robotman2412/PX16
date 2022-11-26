@@ -1,93 +1,160 @@
 
 #include <window.h>
 
+#include <main.h>
+
+#include <gtkmm/application.h>
 #include <gtkmm/window.h>
 #include <gtkmm/button.h>
 #include <gtkmm/label.h>
 #include <gtkmm/grid.h>
+#include <gtkmm.h>
+
+#include <pthread.h>
 
 
 
-class TestWin : public Gtk::Window {
+static std::string format(const char *fmt, ...) {
+	va_list vargs;
+	
+	// Calculate mem requirements.
+	va_start(vargs, fmt);
+	int len = vsnprintf(NULL, 0, fmt, vargs);
+	va_end(vargs);
+	
+	// Allocate memory.
+	char *mem = (char *) malloc(len+1);
+	if (!mem) return std::string("(null)");
+	
+	// Format string.
+	va_start(vargs, fmt);
+	vsnprintf(mem, len+1, fmt, vargs);
+	va_end(vargs);
+	
+	// Draw text.
+	std::string res = std::string(mem);
+	free(mem);
+	
+	return res;
+}
+
+static std::string mkMonoStr(uint32_t color, const char *str) {
+	return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%s</span>", color, str);
+}
+
+static std::string mkMonoHex(uint32_t color, int digits, uint32_t value) {
+	return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%0*x</span>", color, digits, value);
+}
+
+
+
+class MainWindow : public Gtk::Window {
 	public:
-		TestWin();
-		virtual ~TestWin();
+		MainWindow();
+		virtual ~MainWindow();
 		
-	protected:
-		//Member widgets:
-		Gtk::Button btn0;
-		Gtk::Button btn1;
-		Gtk::Button btn2;
-		Gtk::Label  label0;
-		Gtk::Grid grid;
+		bool update();
+		void updateRegs();
+		
+		// The timer used to continually update stuff.
+		sigc::connection mainTimer;
+		// The main layout containing grid.
+		Gtk::Grid mainGrid;
+		
+		// Label: Matrix Display
+		Gtk::Label displayLabel;
+		
+		// Label: Statistics.
+		
+		// Label: Registers.
+		Gtk::Label regsLabel;
+		// Registers value container.
+		Gtk::Grid  regsGrid;
+		// Register names.
+		Gtk::Label regsNames[7][2];
+		// Register values.
+		Gtk::Label regsValues[7][2];
 };
 
-TestWin::TestWin() : btn0("Hello World"), btn1("short!"), btn2("very long text!"), label0("The label") {
-	// Sets the border width of the window.
-	// set_border_width(10);
+MainWindow::MainWindow() {
+	set_border_width(10);
 	set_default_size(100, 100);
 	set_title("Pixie 16");
 	
-	grid.attach(btn0,   0, 0);
-	grid.attach(btn1,   1, 0);
-	grid.attach(btn2,   0, 1);
-	grid.attach(label0, 1, 1);
+	// Add the display stuff.
+	displayLabel.set_markup("Matrix Display");
+	mainGrid.attach(displayLabel, 0, 0);
 	
-	label0.set_markup("<span font-weight=\"bold\" font-family=\"FreeMono\">fancy</span>");
+	// Add the registers stuff.
+	regsLabel.set_markup("Registers");
+	mainGrid.attach(regsLabel, 0, 4);
+	updateRegs();
 	
-	add(grid);
+	// Register names.
+	const char *regNames[2][7] = {{
+		"R0  ", "R1  ", "R2  ", "R3  ", "ST  ", "PF  ", "PC  ",
+	}, {
+		"Imm0", "Imm1", "PbA ", "PbB ", "AR  ", "Db  ", "Ab  ",
+	}};
 	
-	grid.show_all();
+	// Create registers grid.
+	regsGrid.set_column_spacing(10);
+	regsGrid.set_row_spacing(5);
+	for (int y = 0; y < 2; y++) {
+		for (int x = 0; x < 7; x++) {
+			// I wish there were a better way to do this...
+			std::string name = "<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#ffff7f\">"; name += regNames[y][x]; name += "</span>";
+			regsNames[x][y].set_markup(name);
+			
+			// Add register names and values to grid.
+			regsGrid.attach(regsNames[x][y],  x, y*2);
+			regsGrid.attach(regsValues[x][y], x, y*2+1);
+		}
+	}
+	mainGrid.attach(regsGrid, 0, 5);
+	
+	// Show everything.
+	add(mainGrid);
+	mainGrid.show_all();
+	
+	// Set main timer.
+	mainTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &MainWindow::update), 16);
 }
 
-TestWin::~TestWin() {}
+MainWindow::~MainWindow() {}
+
+bool MainWindow::update() {
+	updateRegs();
+	return true;
+}
+
+void MainWindow::updateRegs() {
+	char tmp[5];
+	
+	// Format "normal registers"
+	for (int x = 0; x < 7; x++) {
+		regsValues[x][0].set_markup(mkMonoHex(style.regsValue, 4, cpu.regfile[x]));
+	}
+	
+	// Get hidden register values.
+	word hregs[7] = {
+		cpu.imm0, cpu.imm1, cpu.par_bus_a, cpu.par_bus_b, cpu.AR, cpu.data_bus, cpu.addr_bus
+	};
+	
+	// Format "hidden registers"
+	for (int x = 0; x < 7; x++) {
+		regsValues[x][1].set_markup(mkMonoHex(style.regsHidden, 4, hregs[x]));
+	}
+}
+
+
 
 style_t style = DEFAULT_STYLE();
 
 
 
-int TextWidth(const char *text) {
-	
-}
-
-int CalcSpacing(int elemWidth, int count, int total) {
-	
-}
-
-
-
-void handleButtonEvent(button_t *button) {
-	
-}
-
-void drawButton(button_t *button) {
-	
-}
-
-void fmtNumber(char *buf, size_t buf_cap, double num, int len) {
-	
-}
-
-
-
-void window_init() {
-	
-}
-
 void window_main() {
 	auto app = Gtk::Application::create();
-	TestWin mainWindow;
+	MainWindow mainWindow;
 	app->run(mainWindow);
-}
-
-void window_destroy() {
-	
-}
-
-void window_redraw() {
-	
-}
-
-bool window_poll() {
-	
 }

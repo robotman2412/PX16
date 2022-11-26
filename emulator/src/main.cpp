@@ -79,10 +79,8 @@ int main(int argc, char **argv) {
 	// Create runner thread.
 	pthread_create(&runner_handle, NULL, &runner_main, NULL);
 	
-	window_init();
 	window_main();
 	
-	exit:
 	fflush(stdout);
 	
 	return 0;

@@ -135,17 +135,6 @@ typedef struct {
 
 extern style_t style;
 
-int TextWidth(const char *text);
-int CalcSpacing(int elemWidth, int count, int total);
-
-void handleButtonEvent(button_t *button);
-void drawButton(button_t *button);
-void fmtNumber(char *buf, size_t buf_cap, double num, int len);
-
-void window_init();
 void window_main();
-void window_destroy();
-void window_redraw();
-bool window_poll();
 
 #endif // WINDOW_H
