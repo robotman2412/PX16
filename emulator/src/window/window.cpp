@@ -162,7 +162,17 @@ class MainWindow : public Gtk::Window {
 		Gtk::Label controlsLabel;
 		
 		// Button: Run/stop.
-		Gtk::Button runStop;
+		Gtk::Button runStopButton;
+		// Button: Fast forward.
+		Gtk::Button warpButton;
+		// Button: Instruction step.
+		Gtk::Button insnStepButton;
+		// Button: Line step.
+		// Gtk::Button lineStepButton;
+		// Button: Step over function.
+		// Gtk::Button stepOverButton;
+		// Button: Step out button.
+		// Gtk::Button stepOutButton;
 };
 
 MainWindow::MainWindow() {
@@ -208,17 +218,35 @@ MainWindow::MainWindow() {
 	ctlGrid.attach(controlsLabel, 0, 0);
 	
 	// Run/Stop button.
-	runStop = Gtk::Button("Run");
-	runStop.set_image_from_icon_name("media-playback-start");
-	runStop.set_always_show_image(true);
-	runStop.signal_clicked().connect([this]() -> void {
+	runStopButton = Gtk::Button("Run");
+	runStopButton.set_image_from_icon_name("media-playback-start");
+	runStopButton.set_always_show_image(true);
+	runStopButton.signal_clicked().connect([this]() -> void {
 		running = !running;
-		runStop.set_label(running ? "Stop" : "Run");
-		runStop.set_image_from_icon_name(running ? "media-playback-stop" : "media-playback-start");
+		runStopButton.set_label(running ? "Stop" : "Run");
+		runStopButton.set_image_from_icon_name(running ? "media-playback-stop" : "media-playback-start");
+		if (!running) {
+			warp_speed = false;
+			warpButton.set_label("Warp speed");
+			warpButton.set_image_from_icon_name("media-seek-forward");
+		}
 	});
-	ctlGrid.attach(runStop, 0, 1);
+	runStopButton.set_size_request(120, -1);
+	ctlGrid.attach(runStopButton, 0, 1);
 	
 	// Warp speed button.
+	warpButton = Gtk::Button("Warp speed");
+	warpButton.set_image_from_icon_name("media-seek-forward");
+	warpButton.set_always_show_image(true);
+	warpButton.signal_clicked().connect([this]() -> void {
+		running = true;
+		runStopButton.set_label("Stop");
+		runStopButton.set_image_from_icon_name("media-playback-stop");
+		warp_speed = !warp_speed;
+		warpButton.set_label(warp_speed ? "End warp" : "Warp speed");
+		warpButton.set_image_from_icon_name(warp_speed ? "media-skip-forward" : "media-seek-forward");
+	});
+	ctlGrid.attach(warpButton, 0, 2);
 	
 	// Show everything.
 	mainContainer.pack_start(cpuGrid);
