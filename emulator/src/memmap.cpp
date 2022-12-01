@@ -147,6 +147,10 @@ void badge_mmap_write(core *cpu, memmap *mem, word address, word value, badge_mm
 		} else if (address == 0xfff8) {
 			// Limit 0 low.
 			mmap->timer0_limit = (mmap->timer0_limit & 0xffff0000) | value;
+		} else if (address == 0xfff6) {
+			// UART write.
+			fputc(value, stdout);
+			fflush(stdout);
 		}
 		
 	} else {

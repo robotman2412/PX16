@@ -230,6 +230,7 @@ MainWindow::MainWindow() {
 			warpButton.set_label("Warp speed");
 			warpButton.set_image_from_icon_name("media-seek-forward");
 		}
+		insnStepButton.set_sensitive(!running);
 	});
 	runStopButton.set_size_request(120, -1);
 	ctlGrid.attach(runStopButton, 0, 1);
@@ -240,6 +241,7 @@ MainWindow::MainWindow() {
 	warpButton.set_always_show_image(true);
 	warpButton.signal_clicked().connect([this]() -> void {
 		running = true;
+		insnStepButton.set_sensitive(false);
 		runStopButton.set_label("Stop");
 		runStopButton.set_image_from_icon_name("media-playback-stop");
 		warp_speed = !warp_speed;
@@ -247,6 +249,13 @@ MainWindow::MainWindow() {
 		warpButton.set_image_from_icon_name(warp_speed ? "media-skip-forward" : "media-seek-forward");
 	});
 	ctlGrid.attach(warpButton, 0, 2);
+	
+	// Instruction setp button.
+	insnStepButton = Gtk::Button("Step");
+	insnStepButton.signal_clicked().connect([this]() -> void {
+		sim_total_ticks += fast_tick(&cpu, &mem);
+	});
+	ctlGrid.attach(insnStepButton, 0, 3);
 	
 	// Show everything.
 	mainContainer.pack_start(cpuGrid);

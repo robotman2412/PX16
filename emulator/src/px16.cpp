@@ -31,11 +31,11 @@ word pack_insn(instr insn) {
  __attribute__((hot))
 instr unpack_insn(word packed) {
 	return (instr) {
-		.y = (uint8_t) (packed & 0x8000) >> 15,
-		.x = (uint8_t) (packed & 0x7000) >> 12,
-		.b = (uint8_t) (packed & 0x0e00) >>  9,
-		.a = (uint8_t) (packed & 0x01c0) >>  6,
-		.o = (uint8_t) (packed & 0x003f),
+		.y = (uint8_t) ((packed & 0x8000) >> 15),
+		.x = (uint8_t) ((packed & 0x7000) >> 12),
+		.b = (uint8_t) ((packed & 0x0e00) >>  9),
+		.a = (uint8_t) ((packed & 0x01c0) >>  6),
+		.o = (uint8_t)  (packed & 0x003f),
 	};
 }
 
