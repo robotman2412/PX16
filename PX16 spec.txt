@@ -34,6 +34,19 @@ Addressing modes:
     6: APC  [A+PC]
     7: IMM   A
 
+Conditions:
+    0:    ULT: Unsigned A < B; ~UCout ~Zero
+    1:    UGT: Unsigned A > B;  UCout ~Zero
+    2:    SLT: Signed A < B;   ~SCout ~Zero
+    3:    SGT: Signed A > B;    SCout ~Zero
+    4:    EQ:  Unsigned A = B;         Zero
+    5:    CS:  Unsigned cout;   UCout
+    6:    1:   Always true
+    7:    -
+    8-13: Opposite condition of 0-5
+    14:   JSR: Used for creating subroutines
+    15:   CX:  Used for carry extend
+
 SEI:
     OR  PF, 0x0003
 

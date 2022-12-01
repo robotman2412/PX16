@@ -120,13 +120,13 @@ Div/Mul mode register: .OAC .WTM LIBB BBBB
 	
 	To multiply:
 		Put inputs in accumulator and divisor,
-		Start with mode 1,
+		Start with mode 0,
 		Read result from remainder.
 	
-	To divide:
+	To divide and modulo:
 		Put divisor in its register,
 		Put other number in remainder,
-		Start with mode 0,
+		Start with mode 1,
 		Read division result from accumulator,
 		Read modulo result from remainder.
 	
