@@ -2,46 +2,20 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
+#include <cmath>
+#include <gtkmm.h>
+#include <pthread.h>
+#include <stdexcept>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 
+#include <debugger.h>
 
 
-typedef void (*button_cb_t)(void *args);
-
-typedef enum {
-	BUTTON_ART_NONE,
-	BUTTON_ART_PLAY,
-	BUTTON_ART_PAUSE,
-	BUTTON_ART_SKIP,
-	BUTTON_ART_FAST_FORWARD,
-	BUTTON_ART_FAST_FORWARD_END,
-} button_art_t;
-
-
-
-typedef struct {
-	// Button background color.
-	uint32_t background;
-	// Button border color.
-	uint32_t border;
-	// Button art / text color.
-	uint32_t foreground;
-} button_style_t;
-
-typedef struct {
-	// Inactive button.
-	button_style_t inactive;
-	// Active button.
-	button_style_t active;
-	// Hovered button.
-	button_style_t hovered;
-	// Pressed button.
-	button_style_t pressed;
-} button_styles_t;
 
 typedef struct {
 	// Window background color.
@@ -78,41 +52,12 @@ typedef struct {
 	// Memory address text color.
 	uint32_t memoryAddr;
 	
-	// Default style for buttons.
-	button_styles_t buttons;
+	// Debugger current line background.
+	uint32_t debugPC;
 } style_t;
 
 extern const char *style_names[];
 extern const size_t n_style_names;
-
-typedef struct {
-	// Button position.
-	int          x, y;
-	// Button size.
-	int          width, height;
-	
-	// Whether the button is active.
-	bool         active;
-	// Whether a button press has started.
-	bool         pressed;
-	
-	// The art to put on this button.
-	button_art_t art;
-	// The text to put on this button, if any.
-	const char  *text;
-	
-	// Callback for when button is pressed.
-	button_cb_t  callback;
-	// Context for button callback.
-	void        *callback_args;
-} button_t;
-
-#define DEFAULT_BUTTON_STYLES() { \
-	.inactive = { 0x2f2f2f, 0x7f7f7f, 0x7f7f7f, }, \
-	.active   = { 0x2f2f2f, 0xefefef, 0xefefef, }, \
-	.hovered  = { 0x3f3f3f, 0xcfcfff, 0xcfcfff, }, \
-	.pressed  = { 0x000000, 0x7f7fcf, 0x7f7fcf, }, \
-}
 
 #define DEFAULT_STYLE() (style_t) { \
 	.background  = 0x2f2f2f, \
@@ -130,8 +75,85 @@ typedef struct {
 	.memorySel   = 0xcfcfff, \
 	.memoryText  = 0xcfcfcf, \
 	.memoryAddr  = 0xafafaf, \
-	.buttons     = DEFAULT_BUTTON_STYLES(), \
+	.debugPC     = 0x6f2f2f, \
 }
+
+
+
+class Display: public Gtk::DrawingArea {
+	public:
+		Display();
+		virtual ~Display();
+		
+		static void col2double(uint32_t in, double *out);
+		virtual bool on_draw(const ::Cairo::RefPtr< ::Cairo::Context>& cr);
+};
+
+class MainWindow: public Gtk::Window {
+	public:
+		MainWindow();
+		virtual ~MainWindow();
+		
+		bool update();
+		void updateRegs();
+		
+		// Active debugger windows.
+		std::vector<Debugger*> debuggers;
+		
+		// The timer used to continually update registers, display, etc.
+		sigc::connection mainTimer;
+		
+		// The main container for all the things.
+		Gtk::Box  mainContainer;
+		// The grid that contains the CPU info, registers, display, etc.
+		Gtk::Grid cpuGrid;
+		// The grid that contains the controls, statistics, etc.
+		Gtk::Grid ctlGrid;
+		
+		// Label: Matrix Display
+		Gtk::Label displayLabel;
+		// Matrix displaying device.
+		Display    display;
+		
+		// Label: Statistics.
+		
+		// Label: Registers.
+		Gtk::Label regsLabel;
+		// Registers value container.
+		Gtk::Grid  regsGrid;
+		// Register names.
+		Gtk::Label regsNames[7][2];
+		// Register values.
+		Gtk::Label regsValues[7][2];
+		
+		// Label: Controls.
+		Gtk::Label controlsLabel;
+		
+		// Button: Run/stop.
+		Gtk::Button runStopButton;
+		// Button: Fast forward.
+		Gtk::Button warpButton;
+		// Button: Instruction step.
+		Gtk::Button insnStepButton;
+		// Button: Line step.
+		// Gtk::Button lineStepButton;
+		// Button: Step over function.
+		// Gtk::Button stepOverButton;
+		// Button: Step out button.
+		// Gtk::Button stepOutButton;
+		// Button: Open debugger.
+		Gtk::Button openDebuggerButton;
+};
+
+
+
+std::string escapeMarkup(std::string &other);
+std::string format(const char *fmt, ...);
+std::string mkMonoStr(uint32_t color, std::string str);
+std::string mkMonoHex(uint32_t color, int digits, uint32_t value);
+std::string mkMonoDec(uint32_t color, int digits, int value);
+
+
 
 extern style_t style;
 

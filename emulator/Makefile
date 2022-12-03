@@ -1,6 +1,7 @@
 
 .SUFFIXES:
 
+MAKEFLAGS    += --jobs=$(shell nproc)
 CC            = gcc
 LDFLAGS       = -lpthread -lX11 -lm -lstdc++ $(shell pkg-config --libs gtk+-3.0) $(shell pkg-config --libs gtkmm-3.0)
 CFLAGS_ALL    = -Isrc -Isrc/window -Wno-unused-result -Wno-format-truncation -Wno-narrowing $(shell pkg-config --cflags gtk+-3.0) $(shell pkg-config --cflags gtkmm-3.0)
@@ -37,7 +38,10 @@ debug: ./build/debug.o
 	@echo CC $<
 	@$(CC) -c -o $@ $< $(CFLAGS_DEBUG)
 
-run: ./pxe
+debug-run: debug
+	./pxe
+
+run: all
 	./pxe
 
 clean:

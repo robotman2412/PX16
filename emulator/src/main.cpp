@@ -13,7 +13,7 @@
 #include <ctype.h>
 #include <string.h>
 
-#include <progmap.hpp>
+#include <progmap.h>
 
 double   measured_hertz;
 double   target_hertz;

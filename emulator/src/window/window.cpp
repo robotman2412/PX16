@@ -2,26 +2,27 @@
 #include <window.h>
 #include <main.h>
 
-#include <cairomm/context.h>
-
-#include <cmath>
-
-#include <gtkmm.h>
-// #include <gtkmm/application.h>
-// #include <gtkmm/button.h>
-// #include <gtkmm/box.h>
-// #include <gtkmm/drawingarea.h>
-// #include <gtkmm/grid.h>
-// #include <gtkmm/label.h>
-// #include <gtkmm/window.h>
-
-#include <pthread.h>
-
-#include <stdexcept>
 
 
+std::string escapeMarkup(std::string &other) {
+	std::string out;
+	
+	for (char c: other) {
+		if (c == '<') {
+			out += "&lt;";
+		} else if (c == '>') {
+			out += "&gt;";
+		} else if (c == '&') {
+			out += "&amp;";
+		} else {
+			out += c;
+		}
+	}
+	
+	return out;
+}
 
-static std::string format(const char *fmt, ...) {
+std::string format(const char *fmt, ...) {
 	va_list vargs;
 	
 	// Calculate mem requirements.
@@ -45,24 +46,20 @@ static std::string format(const char *fmt, ...) {
 	return res;
 }
 
-static std::string mkMonoStr(uint32_t color, const char *str) {
-	return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%s</span>", color, str);
+std::string mkMonoStr(uint32_t color, std::string str) {
+	str = escapeMarkup(str);
+	return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%s</span>", color, str.c_str());
 }
 
-static std::string mkMonoHex(uint32_t color, int digits, uint32_t value) {
+std::string mkMonoHex(uint32_t color, int digits, uint32_t value) {
 	return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%0*x</span>", color, digits, value);
 }
 
+std::string mkMonoDec(uint32_t color, int digits, int value) {
+	return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%0*d</span>", color, digits, value);
+}
 
 
-class Display : public Gtk::DrawingArea {
-	public:
-		Display();
-		virtual ~Display();
-		
-		static void col2double(uint32_t in, double *out);
-		virtual bool on_draw(const ::Cairo::RefPtr< ::Cairo::Context>& cr);
-};
 
 Display::Display() {
 	set_size_request(200, 100);
@@ -124,57 +121,6 @@ bool Display::on_draw(const Cairo::RefPtr<Cairo::Context>& cr) {
 
 
 
-class MainWindow : public Gtk::Window {
-	public:
-		MainWindow();
-		virtual ~MainWindow();
-		
-		bool update();
-		void updateRegs();
-		
-		// The timer used to continually update registers, display, etc.
-		sigc::connection mainTimer;
-		
-		// The main container for all the things.
-		Gtk::Box  mainContainer;
-		// The grid that contains the CPU info, registers, display, etc.
-		Gtk::Grid cpuGrid;
-		// The grid that contains the controls, statistics, etc.
-		Gtk::Grid ctlGrid;
-		
-		// Label: Matrix Display
-		Gtk::Label displayLabel;
-		// Matrix displaying device.
-		Display    display;
-		
-		// Label: Statistics.
-		
-		// Label: Registers.
-		Gtk::Label regsLabel;
-		// Registers value container.
-		Gtk::Grid  regsGrid;
-		// Register names.
-		Gtk::Label regsNames[7][2];
-		// Register values.
-		Gtk::Label regsValues[7][2];
-		
-		// Label: Controls.
-		Gtk::Label controlsLabel;
-		
-		// Button: Run/stop.
-		Gtk::Button runStopButton;
-		// Button: Fast forward.
-		Gtk::Button warpButton;
-		// Button: Instruction step.
-		Gtk::Button insnStepButton;
-		// Button: Line step.
-		// Gtk::Button lineStepButton;
-		// Button: Step over function.
-		// Gtk::Button stepOverButton;
-		// Button: Step out button.
-		// Gtk::Button stepOutButton;
-};
-
 MainWindow::MainWindow() {
 	set_border_width(10);
 	set_default_size(100, 100);
@@ -190,72 +136,92 @@ MainWindow::MainWindow() {
 	cpuGrid.attach(regsLabel, 0, 4);
 	updateRegs();
 	
-	// Register names.
-	const char *regNames[2][7] = {{
-		"R0  ", "R1  ", "R2  ", "R3  ", "ST  ", "PF  ", "PC  ",
-	}, {
-		"Imm0", "Imm1", "PbA ", "PbB ", "AR  ", "Db  ", "Ab  ",
-	}};
-	
 	// Create registers grid.
-	regsGrid.set_column_spacing(10);
-	regsGrid.set_row_spacing(5);
-	for (int y = 0; y < 2; y++) {
-		for (int x = 0; x < 7; x++) {
-			// I wish there were a better way to do this...
-			uint32_t col = y ? style.regsHidden : x > 3 ? style.regsSpecial : style.regsGeneral;
-			regsNames[x][y].set_markup(mkMonoStr(col, regNames[y][x]));
-			
-			// Add register names and values to grid.
-			regsGrid.attach(regsNames[x][y],  x, y*2);
-			regsGrid.attach(regsValues[x][y], x, y*2+1);
+	{
+		// Register names.
+		const char *regNames[2][7] = {{
+			"R0",   "R1",   "R2",  "R3",  "ST", "PF", "PC",
+		}, {
+			"Imm0", "Imm1", "PbA", "PbB", "AR", "Db", "Ab",
+		}};
+		
+		regsGrid.set_column_spacing(10);
+		regsGrid.set_row_spacing(5);
+		for (int y = 0; y < 2; y++) {
+			for (int x = 0; x < 7; x++) {
+				// I wish there were a better way to do this...
+				uint32_t col = y ? style.regsHidden : x > 3 ? style.regsSpecial : style.regsGeneral;
+				regsNames[x][y].set_markup(mkMonoStr(col, regNames[y][x]));
+				regsNames[x][y].set_alignment(Gtk::ALIGN_START);
+				
+				// Add register names and values to grid.
+				regsGrid.attach(regsNames[x][y],  x, y*2);
+				regsGrid.attach(regsValues[x][y], x, y*2+1);
+			}
 		}
+		cpuGrid.attach(regsGrid, 0, 5);
 	}
-	cpuGrid.attach(regsGrid, 0, 5);
 	
 	// Controls label.
 	controlsLabel = Gtk::Label("Controls");
 	ctlGrid.attach(controlsLabel, 0, 0);
 	
 	// Run/Stop button.
-	runStopButton = Gtk::Button("Run");
-	runStopButton.set_image_from_icon_name("media-playback-start");
-	runStopButton.set_always_show_image(true);
-	runStopButton.signal_clicked().connect([this]() -> void {
-		running = !running;
-		runStopButton.set_label(running ? "Stop" : "Run");
-		runStopButton.set_image_from_icon_name(running ? "media-playback-stop" : "media-playback-start");
-		if (!running) {
-			warp_speed = false;
-			warpButton.set_label("Warp speed");
-			warpButton.set_image_from_icon_name("media-seek-forward");
-		}
-		insnStepButton.set_sensitive(!running);
-	});
-	runStopButton.set_size_request(120, -1);
-	ctlGrid.attach(runStopButton, 0, 1);
+	{
+		runStopButton = Gtk::Button("Run");
+		runStopButton.set_image_from_icon_name("media-playback-start");
+		runStopButton.set_always_show_image(true);
+		runStopButton.signal_clicked().connect([this]() -> void {
+			running = !running;
+			runStopButton.set_label(running ? "Stop" : "Run");
+			runStopButton.set_image_from_icon_name(running ? "media-playback-stop" : "media-playback-start");
+			if (!running) {
+				warp_speed = false;
+				warpButton.set_label("Warp speed");
+				warpButton.set_image_from_icon_name("media-seek-forward");
+			}
+			insnStepButton.set_sensitive(!running);
+		});
+		runStopButton.set_size_request(120, -1);
+		ctlGrid.attach(runStopButton, 0, 1);
+	}
 	
 	// Warp speed button.
-	warpButton = Gtk::Button("Warp speed");
-	warpButton.set_image_from_icon_name("media-seek-forward");
-	warpButton.set_always_show_image(true);
-	warpButton.signal_clicked().connect([this]() -> void {
-		running = true;
-		insnStepButton.set_sensitive(false);
-		runStopButton.set_label("Stop");
-		runStopButton.set_image_from_icon_name("media-playback-stop");
-		warp_speed = !warp_speed;
-		warpButton.set_label(warp_speed ? "End warp" : "Warp speed");
-		warpButton.set_image_from_icon_name(warp_speed ? "media-skip-forward" : "media-seek-forward");
-	});
-	ctlGrid.attach(warpButton, 0, 2);
+	{
+		warpButton = Gtk::Button("Warp speed");
+		warpButton.set_image_from_icon_name("media-seek-forward");
+		warpButton.set_always_show_image(true);
+		warpButton.signal_clicked().connect([this]() -> void {
+			running = true;
+			insnStepButton.set_sensitive(false);
+			runStopButton.set_label("Stop");
+			runStopButton.set_image_from_icon_name("media-playback-stop");
+			warp_speed = !warp_speed;
+			warpButton.set_label(warp_speed ? "End warp" : "Warp speed");
+			warpButton.set_image_from_icon_name(warp_speed ? "media-skip-forward" : "media-seek-forward");
+		});
+		ctlGrid.attach(warpButton, 0, 2);
+	}
 	
-	// Instruction setp button.
-	insnStepButton = Gtk::Button("Step");
-	insnStepButton.signal_clicked().connect([this]() -> void {
-		sim_total_ticks += fast_tick(&cpu, &mem);
-	});
-	ctlGrid.attach(insnStepButton, 0, 3);
+	// Instruction step button.
+	{
+		insnStepButton = Gtk::Button("Step");
+		insnStepButton.signal_clicked().connect([this]() -> void {
+			sim_total_ticks += fast_tick(&cpu, &mem);
+		});
+		ctlGrid.attach(insnStepButton, 0, 3);
+	}
+	
+	// Open debugger button.
+	{
+		openDebuggerButton = Gtk::Button("Open debugger");
+		openDebuggerButton.signal_clicked().connect([this]() -> void {
+			Debugger *debugger = new Debugger();
+			debuggers.push_back(debugger);
+			debugger->show();
+		});
+		ctlGrid.attach(openDebuggerButton, 0, 4);
+	}
 	
 	// Show everything.
 	mainContainer.pack_start(cpuGrid);
@@ -299,8 +265,6 @@ void MainWindow::updateRegs() {
 
 
 style_t style = DEFAULT_STYLE();
-
-
 
 void window_main() {
 	auto app = Gtk::Application::create();
