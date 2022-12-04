@@ -261,22 +261,32 @@ bool MainWindow::update() {
 }
 
 void MainWindow::updateRegs() {
+	static word prevRegfile[7];
+	static word prevHregs[7];
+	static bool init = false;
 	char tmp[5];
-	
-	// Format "normal registers"
-	for (int x = 0; x < 7; x++) {
-		regsValues[x][0].set_markup(mkMonoHex(style.regsValue, 4, cpu.regfile[x]));
-	}
 	
 	// Get hidden register values.
 	word hregs[7] = {
 		cpu.imm0, cpu.imm1, cpu.par_bus_a, cpu.par_bus_b, cpu.AR, cpu.data_bus, cpu.addr_bus
 	};
 	
+	// If not the first run, and equals last run, don't do anything.
+	if (!init && !memcmp(hregs, prevHregs, sizeof(prevHregs)) && !memcmp(prevRegfile, cpu.regfile, sizeof(prevRegfile))) return;
+	
+	// Format "normal registers"
+	for (int x = 0; x < 7; x++) {
+		regsValues[x][0].set_markup(mkMonoHex(style.regsValue, 4, cpu.regfile[x]));
+	}
+	
 	// Format "hidden registers"
 	for (int x = 0; x < 7; x++) {
 		regsValues[x][1].set_markup(mkMonoHex(style.regsValue, 4, hregs[x]));
 	}
+	
+	// Copy back last run info.
+	memcpy(prevRegfile, cpu.regfile, sizeof(prevRegfile));
+	memcpy(prevHregs,   hregs,       sizeof(prevHregs));
 }
 
 
