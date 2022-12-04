@@ -396,3 +396,11 @@ lword warp_ticks(core *cpu, memmap *mem, uint64_t timeout) {
 	return real;
 }
 
+// Special ticking function for debugging.
+// May modify the mode struct.
+lword debug_fast_ticks(core *cpu, memmap *mem, debugtick *mode, lword cycles) {
+	if (mode->mode == TICK_NORMAL) {
+		return fast_ticks(cpu, mem, cycles);
+	}
+}
+

@@ -42,6 +42,8 @@ class Debugger: public Gtk::Window {
 		
 		// The grid that contains controls.
 		Gtk::Grid           ctlGrid;
+		// The grid on the right;
+		Gtk::Grid           rightGrid;
 		
 		// The label for source code.
 		Gtk::Label          sourceLabel;

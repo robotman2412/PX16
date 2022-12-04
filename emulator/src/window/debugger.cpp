@@ -12,7 +12,7 @@ Debugger::Debugger() {
 	
 	// Controls label.
 	controlsLabel = Gtk::Label("Controls");
-	mainContainer.attach(controlsLabel, 0, 0);
+	ctlGrid.attach(controlsLabel, 0, 0);
 	
 	// Run/Stop button.
 	{
@@ -65,9 +65,20 @@ Debugger::Debugger() {
 		ctlGrid.attach(insnStepButton, 0, 4);
 	}
 	
+	// Step over button.
+	{
+		stepOverButton = Gtk::Button("Step over");
+		stepOutButton.signal_clicked().connect([this]() -> void {
+			if (!running) {
+				sim_mode = TICK_STEP_OVER;
+				running  = true;
+			}
+		});
+	}
+	
 	// Add source label.
 	sourceLabel.set_markup("Code view");
-	mainContainer.attach(sourceLabel, 1, 0);
+	rightGrid.attach(sourceLabel, 0, 0);
 	
 	// Add source code container.
 	sourceScroller.add(sourceContainer);
@@ -75,10 +86,17 @@ Debugger::Debugger() {
 	sourceScroller.set_vexpand(true);
 	sourceScroller.set_halign(Gtk::ALIGN_FILL);
 	sourceScroller.set_valign(Gtk::ALIGN_FILL);
-	mainContainer.attach(sourceScroller, 1, 1);
+	rightGrid.attach(sourceScroller, 0, 1);
+	
+	// Add right grid.
+	rightGrid.set_hexpand(true);
+	rightGrid.set_vexpand(true);
+	rightGrid.set_halign(Gtk::ALIGN_FILL);
+	rightGrid.set_valign(Gtk::ALIGN_FILL);
+	mainContainer.attach(rightGrid, 1, 0);
 	
 	// Add controls grid.
-	mainContainer.attach(ctlGrid, 0, 1);
+	mainContainer.attach(ctlGrid, 0, 0);
 	
 	// Add main container.
 	mainContainer.set_hexpand(true);

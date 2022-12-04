@@ -83,3 +83,5 @@ void runner_mutex_take() {
 void runner_mutex_release() {
 	pthread_mutex_unlock(&mutex);
 }
+
+tickmode sim_mode = TICK_NORMAL;

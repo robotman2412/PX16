@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <vector>
 
 /* ======== Definitions ======== */
 
@@ -126,15 +127,25 @@ typedef enum {
 	PX_ADDR_IMM,
 } addrmode;
 
+typedef enum {
+	TICK_NORMAL,
+	TICK_UNTIL_ADDRESS,
+	TICK_STEP_OVER,
+	TICK_STEP_OUT,
+	TICK_UNTIL_RECURSION,
+} tickmode;
+
 struct s_memmap;
 struct s_core;
 union  s_core_cu;
 struct s_instr;
+struct s_debugtick;
 
 typedef struct s_memmap memmap;
 typedef struct s_core core;
 typedef union  s_core_cu core_cu;
 typedef struct s_instr instr;
+typedef struct s_debugtick debugtick;
 
 struct s_memmap {
 	// Whether an IRQ is being asserted.
@@ -241,10 +252,25 @@ struct s_core {
 	uint64_t insn_count;
 	// The amount of subroutines entered, counted by pattern MOV.JSR and LEA.JSR.
 	uint64_t jsr_count;
+	// The amount of subroutines exited, counted by pattern MOV PC, [ST]
+	uint64_t ret_count;
 	// The amount of IRQs handled, counted by IRQ handler calls.
 	uint64_t irq_count;
 	// The amount of NMIs handled, counted by NMI handler calls.
 	uint64_t nmi_count;
+};
+
+struct s_debugtick {
+	// Which limit to use.
+	tickmode mode;
+	// Limit address.
+	word     limit_addr;
+	// Limit relative recursion depth.
+	word     limit_recursion;
+	// List of breakpoints.
+	std::vector<word> breakpoints;
+	// List of watchpoints.
+	// std::vector<Watchpoint> watchpoints;
 };
 
 /* ==== Them descriptions ==== */
@@ -278,5 +304,9 @@ lword fast_ticks(core *cpu, memmap *mem, lword cycles);
 // Simulates as many cycles as possible until timeout is reached.
 // Returns the real number of simulated cycles.
 lword warp_ticks(core *cpu, memmap *mem, uint64_t timeout);
+
+// Special ticking function for debugging.
+// May modify the mode struct.
+lword debug_fast_ticks(core *cpu, memmap *mem, debugtick *mode, lword cycles);
 
 #endif //PX16_H
