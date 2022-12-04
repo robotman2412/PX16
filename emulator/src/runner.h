@@ -8,5 +8,8 @@
 #include "main.h"
 
 void *runner_main(void *ignored);
+void runner_join();
+void runner_mutex_take();
+void runner_mutex_release();
 
 #endif // RUNNER_H

@@ -96,6 +96,8 @@ class MainWindow: public Gtk::Window {
 		
 		bool update();
 		void updateRegs();
+		// Update button styles.
+		void updateButtons();
 		
 		// Active debugger windows.
 		std::vector<Debugger*> debuggers;
@@ -133,14 +135,8 @@ class MainWindow: public Gtk::Window {
 		Gtk::Button runStopButton;
 		// Button: Fast forward.
 		Gtk::Button warpButton;
-		// Button: Instruction step.
-		Gtk::Button insnStepButton;
-		// Button: Line step.
-		// Gtk::Button lineStepButton;
-		// Button: Step over function.
-		// Gtk::Button stepOverButton;
-		// Button: Step out button.
-		// Gtk::Button stepOutButton;
+		// Button: Reset.
+		Gtk::Button resetButton;
 		// Button: Open debugger.
 		Gtk::Button openDebuggerButton;
 };

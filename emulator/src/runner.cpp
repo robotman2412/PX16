@@ -6,6 +6,8 @@ static uint64_t next_time = 0;
 static uint64_t prev_time = 0;
 static int64_t  too_fast  = 0;
 
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
  __attribute__((hot))
 void runner_cycle() {
@@ -44,11 +46,14 @@ void runner_cycle() {
 
 void *runner_main(void *ignored) {
 	
+	pthread_mutex_init(&mutex, NULL);
+	
 	next_time = micros() + sim_us_delay;
 	prev_time = micros();
 	
 	while (true) {
 		if (running) {
+			runner_mutex_take();
 			int64_t wait = next_time - micros();
 			while (wait > 0) {
 				if (wait > 10000) usleep(10000);
@@ -56,6 +61,7 @@ void *runner_main(void *ignored) {
 				wait = next_time - micros();
 			}
 			runner_cycle();
+			runner_mutex_release();
 		} else {
 			usleep(50000);
 			too_fast = 0;
@@ -63,4 +69,17 @@ void *runner_main(void *ignored) {
 	}
 	
 	return NULL;
+}
+
+void runner_join() {
+	runner_mutex_take();
+	runner_mutex_release();
+}
+
+void runner_mutex_take() {
+	pthread_mutex_lock(&mutex);
+}
+
+void runner_mutex_release() {
+	pthread_mutex_unlock(&mutex);
 }

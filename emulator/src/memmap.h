@@ -45,5 +45,7 @@ void badge_mmap_write(core *cpu, memmap *mem, word address, word value, badge_mm
 memtype badge_mmap_gettype(core *cpu, memmap *mem, word address, badge_mmap *ctx);
 // Post TICK (used for timer).
 void badge_mmap_posttick(core *cpu, memmap *mem, badge_mmap *ctx, lword cycles);
+// RESET.
+void badge_mmap_reset(core *cpu, memmap *mem, badge_mmap *ctx, bool hard);
 
 #endif //MEMMAP_H

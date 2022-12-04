@@ -75,14 +75,82 @@ static std::string readWord(std::stringstream &fd) {
 
 
 
-SourceLine::SourceLine() {
-	addressKnown = false;
-	address      = 0;
+Label::Label() {
+	valid = false;
 }
 
+Label::Label(std::string line) {
+	std::stringstream stream(line);
+	valid = false;
+	
+	std::string tokens[3];
+	for (int i = 0; i < 3; i++) {
+		tokens[i] = readWord(stream);
+		if (tokens[i].size() == 0) {
+			std::cout << "Label incorrect: Missing token " << (i+1) << std::endl;
+			return;
+		}
+	}
+	
+	if (tokens[0] != "label") {
+		std::cout << "Label incorrect: Bad header" << std::endl;
+		return;
+	}
+	
+	name = tokens[1];
+	
+	try {
+		address = std::stol(tokens[2], NULL, 16);
+	} catch (std::invalid_argument) {
+		std::cout << "Label incorrect: Bad number" << std::endl;
+		return;
+	}
+	
+	valid = true;
+}
+
+
+
+Section::Section() {
+	valid = false;
+}
+
+Section::Section(std::string line) {
+	std::stringstream stream(line);
+	valid = false;
+	
+	std::string tokens[4];
+	for (int i = 0; i < 4; i++) {
+		tokens[i] = readWord(stream);
+		if (tokens[i].size() == 0) {
+			std::cout << "Section incorrect: Missing token " << (i+1) << std::endl;
+			return;
+		}
+	}
+	
+	if (tokens[0] != "sect") {
+		std::cout << "Section incorrect: Bad header" << std::endl;
+		return;
+	}
+	
+	name = tokens[1];
+	
+	try {
+		address = std::stol(tokens[2], NULL, 16);
+		size    = std::stol(tokens[3], NULL, 16);
+	} catch (std::invalid_argument) {
+		std::cout << "Section incorrect: Bad number" << std::endl;
+		return;
+	}
+	
+	valid = true;
+}
+
+
+
+SourceLine::SourceLine() {}
+
 SourceLine::SourceLine(std::string line) {
-	addressKnown = false;
-	address      = 0;
 	raw          = line;
 	formatted    = mkMonoStr(style.text, line);
 }
@@ -184,9 +252,23 @@ void ProgMap::init(std::string path) {
 	// Read positions from the file.
 	std::string line;
 	while (readLine(fd, line)){
-		Pos pos(line);
-		if (pos.valid) {
-			posList.push_back(pos);
+		if (!line.compare(0, 4, "pos ", 4)) {
+			Pos pos(line);
+			if (pos.valid) {
+				posList.push_back(pos);
+			}
+			
+		} else if (!line.compare(0, 5, "sect ", 5)) {
+			Section section(line);
+			if (section.valid) {
+				sectionList.push_back(section);
+			}
+			
+		} else if (!line.compare(0, 6, "label ", 6)) {
+			Label label(line);
+			if (label.valid) {
+				labelList.push_back(label);
+			}
 		}
 	}
 	
@@ -217,16 +299,32 @@ void ProgMap::init(std::string path) {
 		Pos        &pos  = posList[i];
 		SourceFile &file = fileMap[pos.absFile];
 		SourceLine &line = file.lines[pos.y0-1];
-		if (!line.addressKnown) {
-			line.addressKnown = true;
-			line.address = pos.address;
-		}
+		line.addresses.push_back(pos.address);
 	}
 	
 	// Collect lines.
 	for (auto iter = fileMap.begin(); iter != fileMap.end(); iter ++) {
 		std::vector<SourceLine> &lines = iter->second.lines;
 		lineList.insert(lineList.end(), lines.begin(), lines.end());
+	}
+	
+	for (Section &sect: sectionList) {
+		// Map names to sections.
+		sectMap[sect.name] = sect;
+		
+		// Map sections to labels.
+		word min = sect.address;
+		word max = sect.address + sect.size;
+		for (Label &label: labelList) {
+			if (label.address >= min && label.address < max) {
+				label.sect = sect.name;
+			}
+		}
+	}
+	
+	// Map names to labels.
+	for (Label &label: labelList) {
+		labelMap[label.name] = label;
 	}
 }
 

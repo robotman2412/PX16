@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 		badge_load_rom(&badge, argv[1]);
 	}
 	sim_sethertz(1000000);
-	core_reset(&cpu);
+	core_reset(&cpu, true);
 	
 	// Create runner thread.
 	pthread_create(&runner_handle, NULL, &runner_main, NULL);

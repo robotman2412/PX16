@@ -145,7 +145,7 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 
 // Resets the core in the way defined by the spec.
 // This means only resetting the CU and PC.
-void core_reset(core *cpu) {
+void core_reset(core *cpu, bool hard) {
 	memset(&cpu->state, 0, sizeof(cpu->state));
 	cpu->state.boot_0 = true;
 	cpu->PC = 0;
@@ -153,6 +153,11 @@ void core_reset(core *cpu) {
 	cpu->jsr_count  = 0;
 	cpu->irq_count  = 0;
 	cpu->nmi_count  = 0;
+	if (hard) {
+		memset(cpu->regfile, 0, sizeof(cpu->regfile));
+		cpu->imm0 = 0;
+		cpu->imm1 = 0;
+	}
 }
 
 

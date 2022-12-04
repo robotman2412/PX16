@@ -28,7 +28,7 @@ void badge_mmap_create(badge_mmap *mmap, memmap *mem) {
 		.tick_ctx    = mmap,
 		.pre_tick    = NULL,
 		.post_tick   = (void(*)(core*,memmap*,void*,lword)) badge_mmap_posttick,
-		.reset       = NULL,
+		.reset       = (void(*)(core*,memmap*,void*,bool)) badge_mmap_reset,
 	};
 }
 
@@ -200,4 +200,18 @@ void badge_mmap_posttick(core *cpu, memmap *mem, badge_mmap *mmap, lword cycles)
 	
 	// Update IRQ and NMI lines.
 	if (irqs_dirty) badge_mmap_update_irq(cpu, mem, mmap);
+}
+
+// RESET.
+void badge_mmap_reset(core *cpu, memmap *mem, badge_mmap *mmap, bool hard) {
+	if (hard) {
+		memset(mmap->ram, 0, sizeof(word) * 65536);
+		mmap->timer0_en    = false;
+		mmap->timer0_irq   = false;
+		mmap->timer0_nmi   = false;
+		mmap->timer0_trig  = false;
+		mmap->timer0_value = 0;
+		mmap->timer0_int   = 0;
+		mmap->timer0_limit = 0;
+	}
 }

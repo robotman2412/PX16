@@ -161,7 +161,7 @@ struct s_memmap {
 	void (*post_tick)(core *cpu, memmap *mem, void *ctx, lword cycles);
 	
 	// The reset line activation.
-	void (*reset)(core *cpu, memmap *mem, void *ctx);
+	void (*reset)(core *cpu, memmap *mem, void *ctx, bool hard);
 };
 
 union s_core_cu {
@@ -258,7 +258,7 @@ extern const char *cu_state_names[n_cu_states];
 /* ======== Functions ======== */
 
 // Resets the core.
-void core_reset(core *cpu);
+void core_reset(core *cpu, bool hard);
 
 // Simulates one full clock cycle of the core.
 void core_tick(core *cpu, memmap *mem) __attribute__((hot));

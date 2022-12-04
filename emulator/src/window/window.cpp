@@ -1,6 +1,7 @@
 
 #include <window.h>
 #include <main.h>
+#include <runner.h>
 
 
 
@@ -173,14 +174,9 @@ MainWindow::MainWindow() {
 		runStopButton.set_always_show_image(true);
 		runStopButton.signal_clicked().connect([this]() -> void {
 			running = !running;
-			runStopButton.set_label(running ? "Stop" : "Run");
-			runStopButton.set_image_from_icon_name(running ? "media-playback-stop" : "media-playback-start");
 			if (!running) {
 				warp_speed = false;
-				warpButton.set_label("Warp speed");
-				warpButton.set_image_from_icon_name("media-seek-forward");
 			}
-			insnStepButton.set_sensitive(!running);
 		});
 		runStopButton.set_size_request(120, -1);
 		ctlGrid.attach(runStopButton, 0, 1);
@@ -193,23 +189,24 @@ MainWindow::MainWindow() {
 		warpButton.set_always_show_image(true);
 		warpButton.signal_clicked().connect([this]() -> void {
 			running = true;
-			insnStepButton.set_sensitive(false);
-			runStopButton.set_label("Stop");
-			runStopButton.set_image_from_icon_name("media-playback-stop");
 			warp_speed = !warp_speed;
-			warpButton.set_label(warp_speed ? "End warp" : "Warp speed");
-			warpButton.set_image_from_icon_name(warp_speed ? "media-skip-forward" : "media-seek-forward");
 		});
 		ctlGrid.attach(warpButton, 0, 2);
 	}
 	
-	// Instruction step button.
+	// Reset button.
 	{
-		insnStepButton = Gtk::Button("Step");
-		insnStepButton.signal_clicked().connect([this]() -> void {
-			sim_total_ticks += fast_tick(&cpu, &mem);
+		resetButton = Gtk::Button("Reset");
+		resetButton.set_image_from_icon_name("view-refresh");
+		resetButton.set_always_show_image(true);
+		resetButton.signal_clicked().connect([this]() -> void {
+			running    = false;
+			warp_speed = false;
+			runner_join();
+			core_reset(&cpu, true);
+			if (mem.reset) mem.reset(&cpu, &mem, mem.mem_ctx, true);
 		});
-		ctlGrid.attach(insnStepButton, 0, 3);
+		ctlGrid.attach(resetButton, 0, 3);
 	}
 	
 	// Open debugger button.
@@ -220,7 +217,7 @@ MainWindow::MainWindow() {
 			debuggers.push_back(debugger);
 			debugger->show();
 		});
-		ctlGrid.attach(openDebuggerButton, 0, 4);
+		ctlGrid.attach(openDebuggerButton, 0, 5);
 	}
 	
 	// Show everything.
@@ -237,7 +234,27 @@ MainWindow::MainWindow() {
 
 MainWindow::~MainWindow() {}
 
+// Update button styles.
+void MainWindow::updateButtons() {
+	static bool lastRunning = false;
+	static bool lastWarp    = false;
+	
+	if (lastRunning == running && lastWarp == warp_speed) return;
+	
+	// Run/stop button.
+	runStopButton.set_label(running ? "Stop" : "Run");
+	runStopButton.set_image_from_icon_name(running ? "media-playback-stop" : "media-playback-start");
+	
+	// Warp speed button.
+	warpButton.set_label(warp_speed ? "End warp" : "Warp speed");
+	warpButton.set_image_from_icon_name(warp_speed ? "media-skip-forward" : "media-seek-forward");
+	
+	lastRunning = running;
+	lastWarp    = warp_speed;
+}
+
 bool MainWindow::update() {
+	updateButtons();
 	updateRegs();
 	display.queue_draw();
 	return true;
