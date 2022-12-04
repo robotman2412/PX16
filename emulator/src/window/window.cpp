@@ -272,7 +272,7 @@ void MainWindow::updateRegs() {
 	};
 	
 	// If not the first run, and equals last run, don't do anything.
-	if (!init && !memcmp(hregs, prevHregs, sizeof(prevHregs)) && !memcmp(prevRegfile, cpu.regfile, sizeof(prevRegfile))) return;
+	if (init && !memcmp(hregs, prevHregs, sizeof(prevHregs)) && !memcmp(prevRegfile, cpu.regfile, sizeof(prevRegfile))) return;
 	
 	// Format "normal registers"
 	for (int x = 0; x < 7; x++) {
@@ -287,6 +287,7 @@ void MainWindow::updateRegs() {
 	// Copy back last run info.
 	memcpy(prevRegfile, cpu.regfile, sizeof(prevRegfile));
 	memcpy(prevHregs,   hregs,       sizeof(prevHregs));
+	init = true;
 }
 
 
