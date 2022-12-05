@@ -78,8 +78,8 @@ bool Display::on_draw(const Cairo::RefPtr<Cairo::Context>& cr) {
 	static bool size_adjusted = false;
 	if (!size_adjusted) {
 		int parent_width = get_parent()->get_width();
-		set_size_request(parent_width, parent_width / 2);
-		size_adjusted = true;
+		set_size_request(-1, parent_width / 2);
+		// size_adjusted = true;
 	}
 	
 	// Get drawable width and height.
@@ -158,6 +158,11 @@ MainWindow::MainWindow() {
 				// Add register names and values to grid.
 				regsGrid.attach(regsNames[x][y],  x, y*2);
 				regsGrid.attach(regsValues[x][y], x, y*2+1);
+				
+				regsNames[x][y].set_hexpand(true);
+				regsNames[x][y].set_halign(Gtk::ALIGN_FILL);
+				regsValues[x][y].set_hexpand(true);
+				regsValues[x][y].set_halign(Gtk::ALIGN_FILL);
 			}
 		}
 		cpuGrid.attach(regsGrid, 0, 5);
@@ -220,16 +225,23 @@ MainWindow::MainWindow() {
 		ctlGrid.attach(openDebuggerButton, 0, 5);
 	}
 	
+	ctlGrid.set_hexpand(false);
+	ctlGrid.set_vexpand(false);
+	
+	cpuGrid.set_hexpand(true);
+	cpuGrid.set_vexpand(true);
+	cpuGrid.set_halign(Gtk::ALIGN_FILL);
+	cpuGrid.set_valign(Gtk::ALIGN_FILL);
+	
 	// Show everything.
-	mainContainer.pack_start(cpuGrid);
-	mainContainer.pack_end(ctlGrid);
+	mainContainer.attach(cpuGrid, 0, 0);
+	mainContainer.attach(ctlGrid, 1, 0);
 	ctlGrid.set_margin_left(10);
 	add(mainContainer);
 	show_all();
 	
 	// Set main timer.
 	mainTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &MainWindow::update), 16);
-	set_resizable(false);
 }
 
 MainWindow::~MainWindow() {}

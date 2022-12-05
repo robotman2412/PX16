@@ -106,7 +106,7 @@ class MainWindow: public Gtk::Window {
 		sigc::connection mainTimer;
 		
 		// The main container for all the things.
-		Gtk::Box  mainContainer;
+		Gtk::Grid mainContainer;
 		// The grid that contains the CPU info, registers, display, etc.
 		Gtk::Grid cpuGrid;
 		// The grid that contains the controls, statistics, etc.
