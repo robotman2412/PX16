@@ -13,8 +13,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <debugger.h>
-
 
 
 typedef struct {
@@ -79,6 +77,10 @@ extern const size_t n_style_names;
 }
 
 
+
+class MainWindow;
+
+#include <debugger.h>
 
 class Display: public Gtk::DrawingArea {
 	public:

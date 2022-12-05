@@ -48,6 +48,7 @@ Debugger::Debugger() {
 			runner_join();
 			core_reset(&cpu, true);
 			if (mem.reset) mem.reset(&cpu, &mem, mem.mem_ctx, true);
+			sim_total_ticks = 0;
 		});
 		ctlGrid.attach(resetButton, 0, 3);
 	}
@@ -77,6 +78,7 @@ Debugger::Debugger() {
 	// Speed.
 	{
 		speedName.set_markup("Frequency");
+		speedName.set_alignment(Gtk::ALIGN_START);
 		speedValue.set_alignment(Gtk::ALIGN_END);
 		statsGrid.attach(speedName,  0, 0);
 		statsGrid.attach(speedValue, 1, 0);
@@ -85,6 +87,7 @@ Debugger::Debugger() {
 	// Cycle count.
 	{
 		cyclesName.set_markup("# Cycles");
+		cyclesName.set_alignment(Gtk::ALIGN_START);
 		cyclesValue.set_alignment(Gtk::ALIGN_END);
 		statsGrid.attach(cyclesName,  0, 1);
 		statsGrid.attach(cyclesValue, 1, 1);
@@ -92,7 +95,8 @@ Debugger::Debugger() {
 	
 	// Instruction count.
 	{
-		insnName.set_markup("# Instructions");
+		insnName.set_markup("# Insn");
+		insnName.set_alignment(Gtk::ALIGN_START);
 		insnValue.set_alignment(Gtk::ALIGN_END);
 		statsGrid.attach(insnName,  0, 2);
 		statsGrid.attach(insnValue, 1, 2);
@@ -101,6 +105,7 @@ Debugger::Debugger() {
 	// JSR count.
 	{
 		jsrName.set_markup("# Calls");
+		jsrName.set_alignment(Gtk::ALIGN_START);
 		jsrValue.set_alignment(Gtk::ALIGN_END);
 		statsGrid.attach(jsrName,  0, 3);
 		statsGrid.attach(jsrValue, 1, 3);
@@ -143,6 +148,7 @@ Debugger::Debugger() {
 	leftGrid.attach(statsLabel, 0, 2);
 	
 	// Add stats grid.
+	statsGrid.set_column_spacing(10);
 	leftGrid.attach(statsGrid, 0, 3);
 	
 	// Add main container.
@@ -164,6 +170,10 @@ Debugger::Debugger() {
 	
 	// Set main timer.
 	mainTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Debugger::update), 16);
+	signal_unmap().connect([this]() -> void {
+		std::vector<Debugger *> &vec = parent->debuggers;
+		vec.erase(std::remove(vec.begin(), vec.end(), this), vec.end());
+	});
 }
 
 Debugger::~Debugger() {}
@@ -227,7 +237,7 @@ void Debugger::updateButtons() {
 	static bool lastRunning = false;
 	static bool lastWarp    = false;
 	
-	if (lastRunning == running && lastWarp == warp_speed) return;
+	// if (lastRunning == running && lastWarp == warp_speed) return;
 	
 	// Run/stop button.
 	runStopButton.set_label(running ? "Stop" : "Run");
@@ -240,13 +250,26 @@ void Debugger::updateButtons() {
 	// Instruction step button.
 	insnStepButton.set_sensitive(!running);
 	
+	// Step over button.
+	stepOverButton.set_sensitive(!running);
+	
 	lastRunning = running;
 	lastWarp    = warp_speed;
 }
 
 // Update statistics.
 void Debugger::updateStats() {
+	// Speed.
 	speedValue.set_markup(mkMonoCount(style.text, "Hz", sim_measurehertz()));
+	
+	// Cycle count.
+	cyclesValue.set_markup(mkMonoCount(style.text, "  ", sim_total_ticks));
+	
+	// Instruction count.
+	insnValue.set_markup(mkMonoCount(style.text, "  ", cpu.insn_count));
+	
+	// Subroutine count.
+	jsrValue.set_markup(mkMonoCount(style.text, "  ", cpu.jsr_count));
 }
 
 // Update the addr2line device.

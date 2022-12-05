@@ -76,7 +76,7 @@ std::string mkMonoCount(uint32_t color, std::string unit, uint64_t value) {
 	} else if (value >= 900) {
 		return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%.1f K%s</span>", color, value / 1000.0, unit.c_str());
 	} else {
-		return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%llu %s</span>", color, value, unit.c_str());
+		return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%llu  %s</span>", color, value, unit.c_str());
 	}
 }
 
@@ -230,6 +230,7 @@ MainWindow::MainWindow() {
 			runner_join();
 			core_reset(&cpu, true);
 			if (mem.reset) mem.reset(&cpu, &mem, mem.mem_ctx, true);
+			sim_total_ticks = 0;
 		});
 		ctlGrid.attach(resetButton, 0, 3);
 	}
@@ -239,6 +240,7 @@ MainWindow::MainWindow() {
 		openDebuggerButton = Gtk::Button("Open debugger");
 		openDebuggerButton.signal_clicked().connect([this]() -> void {
 			Debugger *debugger = new Debugger();
+			debugger->parent = this;
 			debuggers.push_back(debugger);
 			debugger->show();
 		});

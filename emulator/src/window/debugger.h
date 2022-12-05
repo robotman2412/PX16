@@ -12,12 +12,18 @@
 #include <stdint.h>
 #include <stddef.h>
 
+class Debugger;
+
 #include <progmap.h>
+#include <window.h>
 
 class Debugger: public Gtk::Window {
 	public:
 		Debugger();
 		virtual ~Debugger();
+		
+		// pARENT wINDOW.
+		MainWindow *parent;
 		
 		// Select new program map.
 		void setMap(ProgMap newMap);
@@ -69,6 +75,8 @@ class Debugger: public Gtk::Window {
 		Gtk::Button warpButton;
 		// Button: Reset.
 		Gtk::Button resetButton;
+		// Button: Open memory explorer.
+		Gtk::Button memoryButton;
 		// Button: Instruction step.
 		Gtk::Button insnStepButton;
 		// Button: Line step / step in.
