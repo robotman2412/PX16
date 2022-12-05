@@ -7,7 +7,7 @@
 #include "px16.h"
 #include "main.h"
 
-extern tickmode sim_mode;
+extern debugtick sim_mode;
 
 void *runner_main(void *ignored);
 void runner_join();

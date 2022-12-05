@@ -38,6 +38,8 @@ pthread_t runner_handle;
 // Redraws the UI things.
 static void redraw();
 
+std::string map_path;
+
 int main(int argc, char **argv) {
 	for (int i = 0; i < N_ROLLING_AVG; i++) {
 		rolling_avg[i] = 0;
@@ -70,9 +72,43 @@ int main(int argc, char **argv) {
 	};
 	badge.rom = rom;
 	badge.rom_len = sizeof(rom) / sizeof(word);
-	if (argc > 1) {
-		badge_load_rom(&badge, argv[1]);
+	
+	bool has_rom = false;
+	bool has_map = false;
+	
+	for (int i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-x")) {
+			i ++;
+			if (has_rom) {
+				printf("Map file already specified\n");
+				return 1;
+			} else if (i < argc) {
+				badge_load_rom(&badge, argv[i]);
+			} else {
+				printf("Missing filename for '-a'\n");
+				return 1;
+			}
+			
+			has_rom = true;
+		} else if (!strcmp(argv[i], "-m")) {
+			i ++;
+			if (has_map) {
+				printf("Map file already specified\n");
+				return 1;
+			} else if (i < argc) {
+				map_path = argv[i];
+			} else {
+				printf("Missing filename for '-m'\n");
+				return 1;
+			}
+			
+			has_map = true;
+		} else {
+			printf("Unknown option '%s'\n", argv[i]);
+			return 1;
+		}
 	}
+	
 	sim_sethertz(1000000);
 	core_reset(&cpu, true);
 	

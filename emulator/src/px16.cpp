@@ -39,6 +39,23 @@ instr unpack_insn(word packed) {
 	};
 }
 
+// Function for determining how many words an instruction will read,
+// Counts 0-2 for IMM arguments, excludes opcode.
+// Used for debugging.
+ __attribute__((pure))
+word insn_imms(instr unpacked) {
+	return (unpacked.a == PX_REG_IMM) + (unpacked.b == PX_REG_IMM);
+}
+
+// Function for determining how many words an instruction will read,
+// Counts 0-2 for IMM arguments, includes opcode.
+// Used for debugging.
+ __attribute__((pure))
+word insn_size(instr unpacked) {
+	return 1 + (unpacked.a == PX_REG_IMM) + (unpacked.b == PX_REG_IMM);
+}
+
+
 
 // Decide the MOV condition for the given opcode.
  __attribute__((hot))
@@ -334,6 +351,11 @@ lword fast_tick(core *cpu, memmap *mem) {
 	if (run.y && run.x == PX_ADDR_MEM && is_b_st) {
 		cpu->ST ++;
 		took ++;
+		
+		// Check for return pattern.
+		if (run.a == PX_REG_PC) {
+			cpu->ret_count ++;
+		}
 	}
 	
 	bool is_nmi, is_isr, is_isr_allowed;
@@ -401,6 +423,42 @@ lword warp_ticks(core *cpu, memmap *mem, uint64_t timeout) {
 lword debug_fast_ticks(core *cpu, memmap *mem, debugtick *mode, lword cycles) {
 	if (mode->mode == TICK_NORMAL) {
 		return fast_ticks(cpu, mem, cycles);
+	} else if (mode->mode == TICK_STEP_OVER) {
+		word pc = cpu->state.boot_0 ? 2 : cpu->PC;
+		word iw = mem->mem_read(cpu, mem, pc, true, mem->mem_ctx);
+		mode->limit_addr = cpu->PC + insn_size(unpack_insn(iw));
+		mode->limit_recursion = 0;
+		mode->mode = TICK_UNTIL_RECURSION;
+	} else if (mode->mode == TICK_STEP_OUT) {
+		mode->limit_addr = 0;
+		mode->limit_recursion = -1;
+		mode->mode = TICK_UNTIL_RECURSION;
 	}
+	
+	lword real = 0;
+	do {
+		uint64_t pre_jsr = cpu->jsr_count;
+		uint64_t pre_ret = cpu->ret_count;
+		real += fast_tick(cpu, mem);
+		int64_t  diff = (cpu->jsr_count - pre_jsr) - (cpu->ret_count - pre_ret);
+		mode->limit_recursion += diff;
+		
+		if (mode->mode == TICK_UNTIL_ADDRESS && cpu->PC == mode->limit_addr) {
+			mode->reached = true;
+			return real;
+			
+		} else if (mode->mode == TICK_UNTIL_RECURSION) {
+			if (mode->limit_addr && cpu->PC == mode->limit_addr && !mode->limit_recursion) {
+				mode->reached = true;
+				return real;
+				
+			} else if (!mode->limit_addr && !mode->limit_recursion) {
+				mode->reached = true;
+				return real;
+			}
+		}
+		
+	} while (real < cycles);
+	return real;
 }
 

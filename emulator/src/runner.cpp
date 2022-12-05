@@ -18,7 +18,11 @@ void runner_cycle() {
 	if (warp_speed) {
 		tick_count = warp_ticks(&cpu, &mem, micros() + 20000);
 	} else if (sim_ticks > too_fast) {
-		tick_count = fast_ticks(&cpu, &mem, sim_ticks - too_fast);
+		tick_count = debug_fast_ticks(&cpu, &mem, &sim_mode, sim_ticks - too_fast);
+		if (sim_mode.reached) {
+			sim_mode.mode = TICK_NORMAL;
+			running = false;
+		}
 	} else {
 		tick_count = 0;
 	}
@@ -84,4 +88,4 @@ void runner_mutex_release() {
 	pthread_mutex_unlock(&mutex);
 }
 
-tickmode sim_mode = TICK_NORMAL;
+debugtick sim_mode = {.reached = false, .mode = TICK_NORMAL,};

@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include "px16.h"
 #include "memmap.h"
+#include <string>
 
 #define N_ROLLING_AVG 8
 
@@ -27,6 +28,8 @@ extern volatile bool warp_speed;
 extern volatile bool running;
 
 extern uint64_t sim_total_ticks;
+
+extern std::string map_path;
 
 // Return unix time in seconds.
 uint64_t secs();

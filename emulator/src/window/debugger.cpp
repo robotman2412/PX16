@@ -68,12 +68,14 @@ Debugger::Debugger() {
 	// Step over button.
 	{
 		stepOverButton = Gtk::Button("Step over");
-		stepOutButton.signal_clicked().connect([this]() -> void {
+		stepOverButton.signal_clicked().connect([this]() -> void {
 			if (!running) {
-				sim_mode = TICK_STEP_OVER;
+				sim_mode.mode    = TICK_STEP_OVER;
+				sim_mode.reached = false;
 				running  = true;
 			}
 		});
+		ctlGrid.attach(stepOverButton, 0, 5);
 	}
 	
 	// Add source label.
@@ -109,7 +111,10 @@ Debugger::Debugger() {
 	// add(mainContainer);
 	show_all();
 	
-	setMap(ProgMap("/home/julian/the_projects/px16_bad_apple/build/exec.map"));
+	currHighlight = -1;
+	if (map_path.size()) {
+		setMap(ProgMap(map_path));
+	}
 	
 	// Set main timer.
 	mainTimer = Glib::signal_timeout().connect(sigc::mem_fun(*this, &Debugger::update), 16);

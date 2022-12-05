@@ -97,6 +97,8 @@
 
 typedef uint32_t lword;
 typedef uint16_t word;
+typedef int32_t  slword;
+typedef int16_t  sword;
 
 typedef enum {
 	MEM_TYPE_RAM,
@@ -261,12 +263,14 @@ struct s_core {
 };
 
 struct s_debugtick {
+	// Whether a debug breakpoint was reached.
+	bool     reached;
 	// Which limit to use.
 	tickmode mode;
 	// Limit address.
 	word     limit_addr;
 	// Limit relative recursion depth.
-	word     limit_recursion;
+	sword    limit_recursion;
 	// List of breakpoints.
 	std::vector<word> breakpoints;
 	// List of watchpoints.
