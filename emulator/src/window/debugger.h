@@ -26,6 +26,8 @@ class Debugger: public Gtk::Window {
 		bool update();
 		// Update button styles.
 		void updateButtons();
+		// Update statistics.
+		void updateStats();
 		
 		// Currently highlighted line in code view.
 		ssize_t             currHighlight;
@@ -38,19 +40,26 @@ class Debugger: public Gtk::Window {
 		/* ==== STATIC ELEMENTS ==== */
 		
 		// The main container for all the things.
-		Gtk::Grid           mainContainer;
+		Gtk::Grid   mainContainer;
+		
+		// The grid on the left.
+		Gtk::Grid   leftGrid;
+		// The grid on the right.
+		Gtk::Grid   rightGrid;
 		
 		// The grid that contains controls.
-		Gtk::Grid           ctlGrid;
-		// The grid on the right;
-		Gtk::Grid           rightGrid;
+		Gtk::Grid   ctlGrid;
+		// The label for statistics.
+		Gtk::Label  statsLabel;
+		// The grid that contains statistics.
+		Gtk::Grid   statsGrid;
 		
 		// The label for source code.
-		Gtk::Label          sourceLabel;
+		Gtk::Label  sourceLabel;
 		// The scrolling bar device for code view.
 		Gtk::ScrolledWindow sourceScroller;
 		// The container for code view.
-		Gtk::Grid           sourceContainer;
+		Gtk::Grid   sourceContainer;
 		
 		// The label for controls.
 		Gtk::Label  controlsLabel;
@@ -68,6 +77,23 @@ class Debugger: public Gtk::Window {
 		Gtk::Button stepOverButton;
 		// Button: Step out button.
 		Gtk::Button stepOutButton;
+		
+		// The name for speed.
+		Gtk::Label  speedName;
+		// The value for speed.
+		Gtk::Label  speedValue;
+		// The name for cycle count.
+		Gtk::Label  cyclesName;
+		// The value for cycle count.
+		Gtk::Label  cyclesValue;
+		// The name for instruction count.
+		Gtk::Label  insnName;
+		// The value for instruction count.
+		Gtk::Label  insnValue;
+		// The name for JSR count.
+		Gtk::Label  jsrName;
+		// The value for JSR count.
+		Gtk::Label  jsrValue;
 		
 		// The label for variables.
 		Gtk::Label          varLabel;

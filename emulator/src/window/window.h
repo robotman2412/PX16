@@ -148,6 +148,8 @@ std::string format(const char *fmt, ...);
 std::string mkMonoStr(uint32_t color, std::string str);
 std::string mkMonoHex(uint32_t color, int digits, uint32_t value);
 std::string mkMonoDec(uint32_t color, int digits, int value);
+std::string mkMonoCount(uint32_t color, uint64_t value);
+std::string mkMonoCount(uint32_t color, std::string suffix, uint64_t value);
 
 
 

@@ -10,10 +10,6 @@ Debugger::Debugger() {
 	set_size_request(400, 300);
 	set_title("Pixie debugger");
 	
-	// Controls label.
-	controlsLabel = Gtk::Label("Controls");
-	ctlGrid.attach(controlsLabel, 0, 0);
-	
 	// Run/Stop button.
 	{
 		runStopButton = Gtk::Button("Run");
@@ -78,6 +74,41 @@ Debugger::Debugger() {
 		ctlGrid.attach(stepOverButton, 0, 5);
 	}
 	
+	// Speed.
+	{
+		speedName.set_markup("Frequency");
+		speedValue.set_alignment(Gtk::ALIGN_END);
+		statsGrid.attach(speedName,  0, 0);
+		statsGrid.attach(speedValue, 1, 0);
+	}
+	
+	// Cycle count.
+	{
+		cyclesName.set_markup("# Cycles");
+		cyclesValue.set_alignment(Gtk::ALIGN_END);
+		statsGrid.attach(cyclesName,  0, 1);
+		statsGrid.attach(cyclesValue, 1, 1);
+	}
+	
+	// Instruction count.
+	{
+		insnName.set_markup("# Instructions");
+		insnValue.set_alignment(Gtk::ALIGN_END);
+		statsGrid.attach(insnName,  0, 2);
+		statsGrid.attach(insnValue, 1, 2);
+	}
+	
+	// JSR count.
+	{
+		jsrName.set_markup("# Calls");
+		jsrValue.set_alignment(Gtk::ALIGN_END);
+		statsGrid.attach(jsrName,  0, 3);
+		statsGrid.attach(jsrValue, 1, 3);
+	}
+	
+	// Update statistics.
+	updateStats();
+	
 	// Add source label.
 	sourceLabel.set_markup("Code view");
 	rightGrid.attach(sourceLabel, 0, 0);
@@ -90,6 +121,9 @@ Debugger::Debugger() {
 	sourceScroller.set_valign(Gtk::ALIGN_FILL);
 	rightGrid.attach(sourceScroller, 0, 1);
 	
+	// Add left grid.
+	mainContainer.attach(leftGrid, 0, 0);
+	
 	// Add right grid.
 	rightGrid.set_hexpand(true);
 	rightGrid.set_vexpand(true);
@@ -97,8 +131,19 @@ Debugger::Debugger() {
 	rightGrid.set_valign(Gtk::ALIGN_FILL);
 	mainContainer.attach(rightGrid, 1, 0);
 	
+	// Add controls label.
+	controlsLabel = Gtk::Label("Controls");
+	leftGrid.attach(controlsLabel, 0, 0);
+	
 	// Add controls grid.
-	mainContainer.attach(ctlGrid, 0, 0);
+	leftGrid.attach(ctlGrid, 0, 1);
+	
+	// Add stats label.
+	statsLabel = Gtk::Label("Statistics");
+	leftGrid.attach(statsLabel, 0, 2);
+	
+	// Add stats grid.
+	leftGrid.attach(statsGrid, 0, 3);
 	
 	// Add main container.
 	mainContainer.set_hexpand(true);
@@ -107,13 +152,14 @@ Debugger::Debugger() {
 	mainContainer.set_valign(Gtk::ALIGN_FILL);
 	mainContainer.set_column_spacing(10);
 	add(mainContainer);
-	
-	// add(mainContainer);
 	show_all();
 	
+	// Load code, if any.
 	currHighlight = -1;
 	if (map_path.size()) {
 		setMap(ProgMap(map_path));
+	} else {
+		rightGrid.hide();
 	}
 	
 	// Set main timer.
@@ -198,6 +244,11 @@ void Debugger::updateButtons() {
 	lastWarp    = warp_speed;
 }
 
+// Update statistics.
+void Debugger::updateStats() {
+	speedValue.set_markup(mkMonoCount(style.text, "Hz", sim_measurehertz()));
+}
+
 // Update the addr2line device.
 bool Debugger::update() {
 	// The target line to highlight.
@@ -238,6 +289,9 @@ bool Debugger::update() {
 	
 	// Update button styles.
 	updateButtons();
+	
+	// Update statistics.
+	updateStats();
 	
 	currHighlight = newHighlight;
 	

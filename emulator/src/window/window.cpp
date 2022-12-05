@@ -60,6 +60,26 @@ std::string mkMonoDec(uint32_t color, int digits, int value) {
 	return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%0*d</span>", color, digits, value);
 }
 
+std::string mkMonoCount(uint32_t color, uint64_t value) {
+	return mkMonoCount(color, "", value);
+}
+
+std::string mkMonoCount(uint32_t color, std::string unit, uint64_t value) {
+	if (value >= 900000000000000) {
+		return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%.1f P%s</span>", color, value / 1000000000000000.0, unit.c_str());
+	} else if (value >= 900000000000) {
+		return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%.1f T%s</span>", color, value / 1000000000000.0, unit.c_str());
+	} else if (value >= 900000000) {
+		return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%.1f G%s</span>", color, value / 1000000000.0, unit.c_str());
+	} else if (value >= 900000) {
+		return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%.1f M%s</span>", color, value / 1000000.0, unit.c_str());
+	} else if (value >= 900) {
+		return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%.1f K%s</span>", color, value / 1000.0, unit.c_str());
+	} else {
+		return format("<span font-weight=\"bold\" font-family=\"FreeMono\" color=\"#%06x\">%llu %s</span>", color, value, unit.c_str());
+	}
+}
+
 
 
 Display::Display() {
