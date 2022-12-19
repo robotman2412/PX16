@@ -4,3 +4,4 @@ emulator/pxe
 kicad/dev/*/*-backups
 kicad/dev/*/_autosave-*
 kicad/dev/*/#auto_saved_files#
+kicad/dev/*/*.kicad_prl
