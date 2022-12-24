@@ -47,47 +47,26 @@ Conditions:
     14:   JSR: Used for creating subroutines
     15:   CX:  Used for carry extend
 
-SEI:
+Enable IRQs and NMIs:
     OR  PF, 0x0003
 
-CLI:
+Disable IRQs:
     AND PF, 0xfffd
 
-JMP:
+Jump:
     LEA PC, [PC+imm]
 
-JSR:
+Jump to subroutine:
     LEA.JSR PC, [PC+imm]
 
-RET:
+Return from subroutine:
     MOV PC, [ST]
 
-RTI:
+Return from interrupt:
     // PX16 will not trigger interrupts immediately after this instruction.
     // This allows the return from interrupt to be 2 typical instructions.
     MOV PF, [ST]
     MOV PC, [ST]
-
-BRK.IRQ:
-    // There is no real way to do this, because it is an uncommon operation.
-    // I'd recommend making a method specifically for this purpose:
-brk_irq:
-    // Push flags, after PC, the same way interrupts are generated.
-    MOV [ST], PF
-    // Set interrupt in progress and software triggered flags.
-    OR  PF, 0x000c
-    // Jump to IRQ handler.
-    MOV PC, [0]
-
-BRK.NMI:
-    // Similar to BRK.IRQ, but jump based on addr 1:
-brk_irq:
-    // Push flags, after PC, the same way interrupts are generated.
-    MOV [ST], PF
-    // Set interrupt in progress and software triggered flags.
-    OR  PF, 0x000c
-    // Jump to NMI handler.
-    MOV PC, [1]
 
 Flag register (PF) layout:
 15.. .... .... ...0
