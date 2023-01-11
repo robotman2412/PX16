@@ -60,10 +60,14 @@ word insn_size(instr unpacked) {
 // Decide the MOV condition for the given opcode.
  __attribute__((hot))
 bool decide_cond(core *cpu, word opcode) {
+	// Mask out just the condition affecting bits.
 	opcode &= 017;
+	
+	// Extract flags from PF.
 	bool scout = cpu->PF & FLAG_SCOUT;
 	bool ucout = cpu->PF & FLAG_UCOUT;
 	bool zero  = cpu->PF & FLAG_ZERO;
+	
 	switch (opcode) {
 		// Unsigned less than.
 		case (COND_ULT):
@@ -101,6 +105,7 @@ bool decide_cond(core *cpu, word opcode) {
 		// Unsigned carry not set.
 		case (COND_CC):
 			return !ucout;
+		// Always true or otherwise undefined.
 		default:
 			return true;
 	}
@@ -110,51 +115,75 @@ bool decide_cond(core *cpu, word opcode) {
 // Writes to PF unless notouchy is 1.
  __attribute__((hot))
 word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
-	// Determine some parameters.
+	// Determine math category.
 	bool  math1 = opcode >= OP_INC;
 	opcode &= ~OFFS_MATH1;
-	lword cin   = (opcode & OFFS_CC) ? !!(cpu->PF & FLAG_UCOUT)
-				: (opcode != OP_ADD) ^ math1;
-	opcode &= ~OFFS_CC;
+	
+	// Determine carry in.
+	lword cin   = (opcode & OFFS_CC) /* CX bit */
+				? !!(cpu->PF & FLAG_UCOUT) /* MATHC/MATH1C type */
+				: (opcode != OP_ADD) ^ math1; /* MATH/MATH1 type */
+	
+	// When MATH1, set B=0.
 	if (math1) b = 0;
+	
+	// Output variables.
 	lword res, sres;
 	bool scout = false;
-	// Calculate some CRAP.
-	switch (opcode) {
-		case (OP_ADD):
+	
+	// Perform calculation.
+	switch (opcode & ~OFFS_CC) {
+		case (OP_ADD): /* ADD, INC */
 			res = cin + a + b;
 			break;
-		case (OP_SUB):
-		case (OP_CMP):
+			
+		case (OP_SUB): /* SUB, DEC */
+		case (OP_CMP): /* CMP, CMP1 */
 			res = cin + (word) a + (word) ~b;
 			sres = cin + (lword) (a ^ 0x8000) + (lword) (b ^ 0x7fff);
 			scout = sres & 0x10000;
 			break;
-		case (OP_AND):
+			
+		case (OP_AND): /* AND */
 			res = a & b;
 			break;
-		case (OP_OR):
+			
+		case (OP_OR): /* OR */
 			res = a | b;
 			break;
-		case (OP_XOR):
+			
+		case (OP_XOR): /* XOR */
 			res = a ^ b;
 			break;
-		case (OP_SHL & ~OFFS_MATH1):
+			
+		case (OP_SHL & ~OFFS_MATH1): /* SHL */
 			res = ((lword) a << 1) | cin;
 			break;
-		case (OP_SHR & ~OFFS_MATH1):
+			
+		case (OP_SHR & ~OFFS_MATH1): /* SHR */
 			res = (a >> 1) | ((lword) (a & 1) << 16) | (cin << 15);
 			break;
-		default:
+			
+		default: /* Undefined */
 			break;
 	}
+	
 	// Set PF.
 	if (!notouchy) {
+		// Extract flags from result.
 		bool cout = res & 0x10000;
 		bool zero = !(res & 0xffff);
+		
+		// CX logic for zero flag.
+		if (opcode & OFFS_CC) {
+			zero &= cpu->PF & FLAG_ZERO;
+		}
+		
+		// Insert flags into PF.
 		cpu->PF = (cpu->PF & ~FLAG_SCOUT & ~FLAG_UCOUT & ~FLAG_ZERO)
 				| scout * FLAG_SCOUT | cout * FLAG_UCOUT | zero * FLAG_ZERO;
 	}
+	
 	// Done!
 	return res;
 }
@@ -163,18 +192,25 @@ word alu_act(core *cpu, word opcode, word a, word b, bool notouchy) {
 // Resets the core in the way defined by the spec.
 // This means only resetting the CU and PC.
 void core_reset(core *cpu, bool hard) {
+	// Control unit state start at boot_0.
 	memset(&cpu->state, 0, sizeof(cpu->state));
 	cpu->state.boot_0 = true;
+	
+	// Soft: Reset only PC.
 	cpu->PC = 0;
-	cpu->insn_count = 0;
-	cpu->jsr_count  = 0;
-	cpu->irq_count  = 0;
-	cpu->nmi_count  = 0;
+	
 	if (hard) {
+		// Hard: Reset all registers.
 		memset(cpu->regfile, 0, sizeof(cpu->regfile));
 		cpu->imm0 = 0;
 		cpu->imm1 = 0;
 	}
+	
+	// Statistics.
+	cpu->insn_count = 0;
+	cpu->jsr_count  = 0;
+	cpu->irq_count  = 0;
+	cpu->nmi_count  = 0;
 }
 
 
@@ -422,14 +458,19 @@ lword warp_ticks(core *cpu, memmap *mem, uint64_t timeout) {
 // May modify the mode struct.
 lword debug_fast_ticks(core *cpu, memmap *mem, debugtick *mode, lword cycles) {
 	if (mode->mode == TICK_NORMAL) {
+		// No debug modes enabled; fast tick normally.
 		return fast_ticks(cpu, mem, cycles);
+		
 	} else if (mode->mode == TICK_STEP_OVER) {
+		// Step over; tick until next instruction's address is reached.
 		word pc = cpu->state.boot_0 ? 2 : cpu->PC;
 		word iw = mem->mem_read(cpu, mem, pc, true, mem->mem_ctx);
 		mode->limit_addr = cpu->PC + insn_size(unpack_insn(iw));
 		mode->limit_recursion = 0;
 		mode->mode = TICK_UNTIL_RECURSION;
+		
 	} else if (mode->mode == TICK_STEP_OUT) {
+		// Step out; tick until return instruction.
 		mode->limit_addr = 0;
 		mode->limit_recursion = -1;
 		mode->mode = TICK_UNTIL_RECURSION;
@@ -437,22 +478,31 @@ lword debug_fast_ticks(core *cpu, memmap *mem, debugtick *mode, lword cycles) {
 	
 	lword real = 0;
 	do {
+		// Capture stats for JSR detection.
 		uint64_t pre_jsr = cpu->jsr_count;
 		uint64_t pre_ret = cpu->ret_count;
+		
+		// One fast tick cycle.
 		real += fast_tick(cpu, mem);
+		
+		// JSR/RET change calculation.
 		int64_t  diff = (cpu->jsr_count - pre_jsr) - (cpu->ret_count - pre_ret);
 		mode->limit_recursion += diff;
 		
 		if (mode->mode == TICK_UNTIL_ADDRESS && cpu->PC == mode->limit_addr) {
+			// Tick until address limit.
 			mode->reached = true;
 			return real;
 			
 		} else if (mode->mode == TICK_UNTIL_RECURSION) {
+			// Tick until recursion check.
 			if (mode->limit_addr && cpu->PC == mode->limit_addr && !mode->limit_recursion) {
+				// Recursion + limit address.
 				mode->reached = true;
 				return real;
 				
 			} else if (!mode->limit_addr && !mode->limit_recursion) {
+				// Just recursion.
 				mode->reached = true;
 				return real;
 			}
