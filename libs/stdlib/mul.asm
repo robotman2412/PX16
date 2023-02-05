@@ -119,21 +119,22 @@ __px16_mul_lli:
 	MOV [ST], R0
 	// It turns out we need to allocate more stack space...
 	// So there's this memory copy.
-	MOV R0, [ST+9]
+	MOV R1, 9
+	MOV R0, [ST+R1]
 	MOV [ST], R0
-	MOV R0, [ST+9]
+	MOV R0, [ST+R1]
 	MOV [ST], R0
-	MOV R0, [ST+9]
+	MOV R0, [ST+R1]
 	MOV [ST], R0
-	MOV R0, [ST+9]
+	MOV R0, [ST+R1]
 	MOV [ST], R0
-	MOV R0, [ST+9]
+	MOV R0, [ST+R1]
 	MOV [ST], R0
-	MOV R0, [ST+9]
+	MOV R0, [ST+R1]
 	MOV [ST], R0
-	MOV R0, [ST+9]
+	MOV R0, [ST+R1]
 	MOV [ST], R0
-	MOV R0, [ST+9]
+	MOV R0, [ST+R1]
 	MOV [ST], R0
 	// Call the unsigned multiply.
 	MOV.JSR PC, __px16_mul_llu
@@ -226,10 +227,10 @@ __px16_mul_llu:
 	CMP1C [ST+8]
 	MOV.ULT PC, .exit
 	// Consume a bit of A.
-	SHR [ST+4]
-	SHRC [ST+3]
-	SHRC [ST+2]
-	SHRC [ST+1]
+	SHR [ST+8]
+	SHRC [ST+7]
+	SHRC [ST+6]
+	SHRC [ST+5]
 	// Add to result?
 	MOV.CC PC, .skipadd
 	ADD R0, [ST+1]
