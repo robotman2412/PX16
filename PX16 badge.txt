@@ -44,10 +44,10 @@ MMIO:
 	0xfffa:			Timer 0 low
 	0xfff9:			Limit 0 high
 	0xfff8:			Limit 0 low
-	0xfff7:			UART mode?
+	0xfff7:			UART mode
 	0xfff6:			UART write
-	0xfff5:			UART read?
-	0xfff4:			Interrupt sense?
+	0xfff5:			UART read
+	0xfff4:			Interrupt sense
 	0xfff3:			Div/Mul mode
 	0xfff2:			Memory mode?
 	0xfffc-0xffff:	Div/Mul accumulator
