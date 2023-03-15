@@ -7,6 +7,7 @@ struct s_badge_mmap;
 typedef struct s_badge_mmap badge_mmap;
 
 #include "px16.h"
+#include <queue>
 
 struct s_badge_mmap {
 	/* ==== Physical memory ==== */

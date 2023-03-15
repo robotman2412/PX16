@@ -1,0 +1,40 @@
+
+Hm yes the pipelined version.
+
+Pipeline stages overview:
+	- Boot / interrupts
+	- Fetch / decode
+	- Fetch imm / memory access
+	- ALU / MOV
+
+Boot / interrupts:
+	For interrupts, push PC followed by PF.
+	Then, look up correct entry vector for boot or interrupt.
+	This stage only becomes active at initial startup and interrupts,
+	and very often causes stalling due to memory access.
+
+Fetch / decode:
+	Load instruction from memory and decode it.
+	This stage computes almost all future control signals.
+	These include:
+		Which IMMs need to be fetched,
+		Whether push/pop needs to happen,
+		Which ALU operation is to be performed,
+		Branch prediction.
+
+Fetch imm / memory access:
+	Fetches values for IMM registers and/or loads from memory.
+	For LEA, only performs address computation and does not access memory.
+	Loading an IMM causes stalling in the fetch/decode stage.
+	For stack push operations, this is the time at which pre-decrement happens.
+	If ALU/MOV accesses ST, then this pre-decrement stalls.
+
+ALU / MOV:
+	The real "action stage", instruction-defined behaviour.
+	Either the ALU is used, or the MOV/LEA conditions are evaluated.
+	This stage very commonly stores to a register.
+
+Branch prediction strategy:
+	Predict nearest to currect PC as most likely.
+	A four-entry table of overrides is filled out when the prediction fails,
+	with the actual branch that happened.

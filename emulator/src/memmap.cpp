@@ -96,6 +96,9 @@ word badge_mmap_read(core *cpu, memmap *mem, word address, bool notouchy, badge_
 		} else if (address == 0xfff8) {
 			// Timer 0 low.
 			return mmap->timer0_limit;
+		} else if (address == 0xfff5) {
+			// UART read.
+			return getchar();
 		} else {
 			// Undefined MMIO.
 			return 0;

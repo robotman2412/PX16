@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include <string.h>
+#include <termios.h>
 
 #include <progmap.h>
 
@@ -35,8 +36,17 @@ uint64_t sim_total_ticks = 0;
 
 pthread_t runner_handle;
 
-// Redraws the UI things.
-static void redraw();
+// Initial flags for termios.
+struct termios origTerm;
+// Is there an origTerm?
+bool hasOrigTerm;
+// Initial flags for STDIN.
+static int fflags;
+// Resets flags for STDIN.
+static void resetcntl() {
+    fcntl(0, F_SETFL, fflags);
+	tcsetattr(0, 0, &origTerm);
+}
 
 std::string map_path;
 
@@ -45,6 +55,24 @@ int main(int argc, char **argv) {
 		rolling_avg[i] = 0;
 	}
 	
+	// Disable STDIN echo.
+	atexit(resetcntl);
+	struct termios termInfo;
+	if (!tcgetattr(0, &termInfo)) {
+		hasOrigTerm = false;
+		origTerm = termInfo;
+		termInfo.c_lflag &= ~ECHO;
+		termInfo.c_lflag &= ~ICANON;
+		tcsetattr(0, 0, &termInfo);
+	} else {
+		hasOrigTerm = true;
+	}
+	
+	// Make STDIN nonblocking.
+	fflags = fcntl(0, F_GETFL);
+    fcntl(0, F_SETFL, fflags | O_NONBLOCK);
+	
+	// Create emulated hardware.
 	running = false;
 	badge_mmap_create(&badge, &mem);
 	
@@ -80,12 +108,12 @@ int main(int argc, char **argv) {
 		if (!strcmp(argv[i], "-x")) {
 			i ++;
 			if (has_rom) {
-				printf("Map file already specified\n");
+				printf("Executable file already specified\n");
 				return 1;
 			} else if (i < argc) {
 				badge_load_rom(&badge, argv[i]);
 			} else {
-				printf("Missing filename for '-a'\n");
+				printf("Missing filename for '-x'\n");
 				return 1;
 			}
 			
