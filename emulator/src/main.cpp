@@ -103,9 +103,13 @@ int main(int argc, char **argv) {
 	
 	bool has_rom = false;
 	bool has_map = false;
+	bool start_running = false;
 	
 	for (int i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-x")) {
+		if (!strcmp(argv[i], "-r")) {
+			start_running = true;
+			
+		} else if (!strcmp(argv[i], "-x")) {
 			i ++;
 			if (has_rom) {
 				printf("Executable file already specified\n");
@@ -142,6 +146,7 @@ int main(int argc, char **argv) {
 	
 	// Create runner thread.
 	pthread_create(&runner_handle, NULL, &runner_main, NULL);
+	running = start_running;
 	
 	window_main();
 	
