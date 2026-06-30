@@ -106,7 +106,13 @@ int main(int argc, char **argv) {
 	bool start_running = false;
 	
 	for (int i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-r")) {
+		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+			printf("  -r           Start running immediately\n");
+			printf("  -x <file>    Load executable ROM file\n");
+			printf("  -m <file>    Set disassembly map file\n");
+			return 1;
+			
+		} else if (!strcmp(argv[i], "-r")) {
 			start_running = true;
 			
 		} else if (!strcmp(argv[i], "-x")) {
